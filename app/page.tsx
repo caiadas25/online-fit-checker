@@ -128,8 +128,8 @@ export default function Home() {
           </button>
           <p className="text-center text-[11px] text-gray-400">
             {garments.length > 0
-              ? `This outfit = ${garments.length} image request${garments.length === 1 ? "" : "s"} (1 per garment), billed to your OpenRouter credits for the selected model.`
-              : "Each garment is one AI image edit, billed to your OpenRouter credits. Layering is applied automatically by item type."}
+              ? `All ${garments.length} garment${garments.length === 1 ? "" : "s"} are composed in one image request, billed to your OpenRouter credits. Layering follows item type.`
+              : "Your whole outfit is composed in a single image request, billed to your OpenRouter credits. Layering follows item type."}
           </p>
         </div>
 

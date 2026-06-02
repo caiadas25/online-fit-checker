@@ -95,36 +95,38 @@ function toDataUrl(img: ImageInput): string {
 
 const ARTICLE: Record<GarmentType, string> = {
   top: "top / shirt",
-  bottom: "pair of bottoms (pants/skirt)",
+  bottom: "bottoms (pants/skirt)",
   dress: "dress",
-  jacket: "jacket / outerwear, layered on top of any existing clothing",
-  tie: "necktie, worn over the shirt",
-  shoes: "pair of shoes",
+  jacket: "jacket / outerwear (outermost layer)",
+  tie: "necktie (worn over the shirt)",
+  shoes: "shoes",
   accessory: "accessory",
 };
 
-function describe(type: GarmentType, label: string): string {
-  return `${ARTICLE[type]}${label ? ` ("${label}")` : ""}`;
-}
+/**
+ * Build one prompt that composes the whole outfit in a single request.
+ * `garments` are pre-sorted innermost→outermost. We deliberately do NOT include
+ * the scraped store title (it caused models to render that text into the image),
+ * and we reference each garment by its image position.
+ */
+function buildOutfitPrompt(garments: OutfitGarment[], hasBaseImage: boolean): string {
+  // Image index where the garments start (1-based, after an optional base photo).
+  const offset = hasBaseImage ? 2 : 1;
+  const lines = garments.map((g, i) => `Image ${i + offset} is the ${ARTICLE[g.type]}.`);
 
-/** First step when there's no base image: create a mannequin already wearing the garment. */
-function createOnMannequinPrompt(type: GarmentType, label: string): string {
-  return [
-    `Generate a single photorealistic, full-length image of a plain, faceless, neutral light-gray display mannequin standing front-facing on a seamless studio background.`,
-    `The image provided is a ${describe(type, label)}.`,
-    `Dress the mannequin in that ${type}, fitted naturally to its body. Show the full figure from head to feet.`,
-    `Output only the image.`,
-  ].join(" ");
-}
+  const subject = hasBaseImage
+    ? "The first image shows a person. Keep their exact face, body, hair, and skin, and use a plain studio background."
+    : "Render a single neutral, faceless, light-gray full-body display mannequin standing front-facing on a seamless light-gray studio background.";
 
-/** Subsequent steps: layer the next garment onto the current composite. */
-function layerPrompt(type: GarmentType, label: string): string {
   return [
-    `The first image shows a mannequin (it may already be wearing some clothing).`,
-    `The second image is a ${describe(type, label)}.`,
-    `Edit the first image so the same mannequin also wears that ${type}, fitted to its body and layered correctly over anything it already wears.`,
-    `Keep the exact same mannequin, pose, camera framing, lighting, and plain background.`,
-    `Output only the edited image.`,
+    subject,
+    `The remaining ${garments.length} image(s) are the garments to put on, listed from innermost to outermost layer:`,
+    lines.join(" "),
+    `Dress the figure in ALL of these garments together as one complete, coherent outfit, layered naturally in that order (e.g. shirts under jackets, ties over shirts).`,
+    `Reproduce each garment exactly as shown in its image — identical colour, wash, pattern, texture, cut, and length. Do not substitute, restyle, or recolour them.`,
+    `Show the entire figure from head to feet, centred and full-length — do not crop or zoom in on one garment.`,
+    `Do NOT add any text, captions, labels, logos, price tags, or watermarks anywhere in the image.`,
+    `Output only the final composed image.`,
   ].join(" ");
 }
 
@@ -186,9 +188,10 @@ function translateError(status: number, body: string): Error {
 }
 
 /**
- * Iteratively dress the base model in each garment via the chosen OpenRouter image model,
- * one request per garment, feeding the running composite forward so layers stack correctly.
- * Garments are expected to be pre-sorted into layer order by the caller.
+ * Compose the whole outfit in a SINGLE request: the model receives every garment
+ * image at once (plus an optional base photo) and renders one full-body figure
+ * wearing all of them. This avoids the drift/cropping/lost-layers problems of
+ * editing one garment at a time. Garments are pre-sorted innermost→outermost.
  */
 export async function composeOutfit(
   baseModelSrc: string,
@@ -201,92 +204,65 @@ export async function composeOutfit(
   if (isMock()) {
     return {
       image: toDataUrl(await loadImage("/sample-composite.svg")),
-      usage: {
-        requests: garments.length,
-        totalTokens: 0,
-        costUsd: 0,
-        model: modelKey,
-        modelLabel,
-        mocked: true,
-      },
+      usage: { requests: 1, totalTokens: 0, costUsd: 0, model: modelKey, modelLabel, mocked: true },
     };
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY!;
-  // A real photo base is an image source; the default "mannequin" sentinel is not,
-  // so we ask the model to invent the mannequin from the first garment instead.
+  // A real uploaded/linked photo is an image source; the "mannequin" sentinel is not.
   const hasBaseImage = /^(data:|https?:|\/)/.test(baseModelSrc);
-  let currentDataUrl: string | null = hasBaseImage
-    ? toDataUrl(await loadImage(baseModelSrc))
-    : null;
-  let totalTokens = 0;
-  let costUsd = 0;
-  let costSeen = false;
 
-  for (const garment of garments) {
-    const garmentImg = await loadImage(garment.imageUrl);
+  // Load all images up front (base first, then garments in layer order).
+  const garmentImgs = await Promise.all(garments.map((g) => loadImage(g.imageUrl)));
 
-    // No current image yet (default mannequin, first garment): generate the
-    // mannequin wearing this garment from text + the garment image alone.
-    const content =
-      currentDataUrl === null
-        ? [
-            { type: "text", text: createOnMannequinPrompt(garment.type, garment.label) },
-            { type: "image_url", image_url: { url: toDataUrl(garmentImg) } },
-          ]
-        : [
-            { type: "text", text: layerPrompt(garment.type, garment.label) },
-            { type: "image_url", image_url: { url: currentDataUrl } },
-            { type: "image_url", image_url: { url: toDataUrl(garmentImg) } },
-          ];
-
-    const res = await fetch(OPENROUTER_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "X-Title": "Online Fit Checker",
-      },
-      body: JSON.stringify({
-        model: modelCfg.id,
-        modalities: modelCfg.modalities,
-        usage: { include: true },
-        messages: [{ role: "user", content }],
-      }),
-    });
-
-    if (!res.ok) {
-      throw translateError(res.status, await res.text());
-    }
-    const data = await res.json();
-    const usage = data.usage as { total_tokens?: number; cost?: number } | undefined;
-    totalTokens += usage?.total_tokens ?? 0;
-    if (typeof usage?.cost === "number") {
-      costUsd += usage.cost;
-      costSeen = true;
-    }
-    const next = imageFromResponse(data);
-    if (!next) {
-      const said = textFromResponse(data);
-      throw new Error(
-        `${modelLabel} returned no image for "${garment.label || garment.type}".` +
-          (said ? ` Model said: "${said.slice(0, 240)}"` : " Try a different model or regenerate."),
-      );
-    }
-    // Normalize to a self-contained data URL (so it downloads and feeds forward reliably).
-    currentDataUrl = next.startsWith("data:") ? next : toDataUrl(await loadImage(next));
+  const content: { type: string; text?: string; image_url?: { url: string } }[] = [
+    { type: "text", text: buildOutfitPrompt(garments, hasBaseImage) },
+  ];
+  if (hasBaseImage) {
+    content.push({ type: "image_url", image_url: { url: toDataUrl(await loadImage(baseModelSrc)) } });
+  }
+  for (const img of garmentImgs) {
+    content.push({ type: "image_url", image_url: { url: toDataUrl(img) } });
   }
 
-  if (currentDataUrl === null) {
-    throw new Error("Add at least one garment to generate an outfit.");
+  const res = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "X-Title": "Online Fit Checker",
+    },
+    body: JSON.stringify({
+      model: modelCfg.id,
+      modalities: modelCfg.modalities,
+      usage: { include: true },
+      messages: [{ role: "user", content }],
+    }),
+  });
+
+  if (!res.ok) {
+    throw translateError(res.status, await res.text());
   }
+  const data = await res.json();
+  const usage = data.usage as { total_tokens?: number; cost?: number } | undefined;
+
+  const next = imageFromResponse(data);
+  if (!next) {
+    const said = textFromResponse(data);
+    throw new Error(
+      `${modelLabel} returned no image.` +
+        (said ? ` Model said: "${said.slice(0, 240)}"` : " Try a different model or regenerate."),
+    );
+  }
+  // Normalize to a self-contained data URL (so it downloads reliably).
+  const image = next.startsWith("data:") ? next : toDataUrl(await loadImage(next));
 
   return {
-    image: currentDataUrl,
+    image,
     usage: {
-      requests: garments.length,
-      totalTokens,
-      costUsd: costSeen ? costUsd : null,
+      requests: 1,
+      totalTokens: usage?.total_tokens ?? 0,
+      costUsd: typeof usage?.cost === "number" ? usage.cost : null,
       model: modelKey,
       modelLabel,
       mocked: false,
