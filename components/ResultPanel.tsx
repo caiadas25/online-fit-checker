@@ -28,22 +28,14 @@ function UsageNote({ usage }: { usage: Usage }) {
   return (
     <div className="w-full max-w-md rounded-lg bg-gray-50 px-4 py-3 text-center text-xs text-gray-500">
       <p className="font-medium text-gray-700">
-        This test used {usage.requests} API request{usage.requests === 1 ? "" : "s"}
-        {usage.mocked ? " (estimated — mock mode)" : ""}
+        This test used {usage.requests} image request{usage.requests === 1 ? "" : "s"}
+        {usage.mocked ? " (estimated — mock mode, no real call made)" : ""}
         {tokenLabel ? ` · ${tokenLabel}` : ""}
       </p>
       <p className="mt-1">
-        Rate limits count requests, and these fire back-to-back, so a {usage.requests}-item outfit
-        spends {usage.requests} of your per-minute allowance at once.{" "}
-        <a
-          href="https://aistudio.google.com/rate-limit"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-gray-700"
-        >
-          Check your live quota
-        </a>
-        .
+        {usage.mocked
+          ? "Mock mode makes no real API calls and costs nothing."
+          : `Gemini 2.5 Flash Image has no free tier — each image bills about $0.039, so this generation cost roughly $${(usage.requests * 0.039).toFixed(2)}.`}
       </p>
     </div>
   );
@@ -58,7 +50,26 @@ export default function ResultPanel({ image, usage, loading, error, hasGarments 
           <p className="text-sm">Dressing the model… this can take up to a minute.</p>
         </div>
       ) : error ? (
-        <p className="max-w-sm text-center text-sm text-red-600">{error}</p>
+        error.startsWith("BILLING_REQUIRED:") ? (
+          <div className="max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-5 text-center">
+            <p className="text-sm font-semibold text-amber-900">Gemini billing required</p>
+            <p className="mt-2 text-xs leading-relaxed text-amber-800">
+              The image model (Gemini 2.5 Flash Image) has no free tier, so real generation needs
+              billing enabled on your Google AI Studio / Cloud project. It&apos;s pay-as-you-go at
+              about <span className="font-medium">$0.039 per image</span>.
+            </p>
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block rounded-lg bg-amber-900 px-4 py-2 text-xs font-medium text-white hover:bg-amber-800"
+            >
+              Enable billing in AI Studio
+            </a>
+          </div>
+        ) : (
+          <p className="max-w-sm text-center text-sm text-red-600">{error}</p>
+        )
       ) : image ? (
         <div className="flex w-full flex-col items-center gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}

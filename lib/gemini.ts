@@ -114,6 +114,32 @@ function toDataUrl(img: ImageInput): string {
   return `data:${img.mimeType};base64,${img.data}`;
 }
 
+/** Turn raw Gemini SDK errors into user-facing messages, flagging billing/quota issues. */
+function translateGeminiError(err: unknown): Error {
+  const raw = err instanceof Error ? err.message : String(err);
+  const status =
+    (typeof err === "object" && err && "status" in err ? String((err as { status: unknown }).status) : "") || "";
+  const haystack = `${status} ${raw}`.toLowerCase();
+
+  // The image model has no free tier (limit: 0), so a 429 almost always means
+  // billing isn't enabled rather than a transient burst limit.
+  if (
+    haystack.includes("429") ||
+    haystack.includes("resource_exhausted") ||
+    haystack.includes("quota") ||
+    haystack.includes("billing")
+  ) {
+    return new Error(
+      "BILLING_REQUIRED: Gemini 2.5 Flash Image has no free tier, so this request was rejected for quota. " +
+        "Enable billing on your Google AI Studio / Cloud project to generate real images (~$0.039 per image).",
+    );
+  }
+  if (haystack.includes("api key") || haystack.includes("permission") || haystack.includes("401") || haystack.includes("403")) {
+    return new Error("Your Gemini API key was rejected. Double-check GEMINI_API_KEY is a valid AI Studio key.");
+  }
+  return new Error(`The image model failed: ${raw}`);
+}
+
 /**
  * Iteratively dress the base model in each garment, one Gemini call per item,
  * feeding the running composite forward so layers stack correctly.
@@ -141,19 +167,24 @@ export async function composeOutfit(
 
   for (const garment of garments) {
     const garmentImg = await loadImage(garment.imageUrl);
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: promptFor(garment.type, garment.label) },
-            { inlineData: { mimeType: current.mimeType, data: current.data } },
-            { inlineData: { mimeType: garmentImg.mimeType, data: garmentImg.data } },
-          ],
-        },
-      ],
-    });
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: MODEL,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: promptFor(garment.type, garment.label) },
+              { inlineData: { mimeType: current.mimeType, data: current.data } },
+              { inlineData: { mimeType: garmentImg.mimeType, data: garmentImg.data } },
+            ],
+          },
+        ],
+      });
+    } catch (err) {
+      throw translateGeminiError(err);
+    }
     totalTokens += response.usageMetadata?.totalTokenCount ?? 0;
     const next = imageFromResponse(response);
     if (!next) {

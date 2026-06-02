@@ -119,8 +119,8 @@ export default function Home() {
           </button>
           <p className="text-center text-[11px] text-gray-400">
             {garments.length > 0
-              ? `This outfit = ${garments.length} API request${garments.length === 1 ? "" : "s"} (1 per garment, fired back-to-back). On the free tier, keep outfits small to avoid per-minute rate limits.`
-              : "Each garment is one AI image edit fired back-to-back. Layering is applied automatically by item type."}
+              ? `This outfit = ${garments.length} image request${garments.length === 1 ? "" : "s"} (1 per garment). Gemini image generation has no free tier — about $0.039 each, so ~$${(garments.length * 0.039).toFixed(2)} per generation.`
+              : "Each garment is one AI image edit. Layering is applied automatically by item type. Note: Gemini image generation has no free tier (~$0.039 per image)."}
           </p>
         </div>
 
