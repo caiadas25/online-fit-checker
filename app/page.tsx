@@ -4,17 +4,22 @@ import { useState } from "react";
 import AddGarmentForm from "@/components/AddGarmentForm";
 import GarmentCard from "@/components/GarmentCard";
 import BaseModelPicker from "@/components/BaseModelPicker";
+import ModelPicker from "@/components/ModelPicker";
 import ResultPanel from "@/components/ResultPanel";
 import { sortByLayer, type Garment, type GarmentType } from "@/lib/garments";
 import { DEFAULT_BASE_MODEL } from "@/lib/models";
+import { type ModelKey } from "@/lib/model-options";
 
 export default function Home() {
   const [garments, setGarments] = useState<Garment[]>([]);
   const [baseModel, setBaseModel] = useState<string>(DEFAULT_BASE_MODEL);
+  const [model, setModel] = useState<ModelKey>("gemini");
   const [image, setImage] = useState<string | null>(null);
   const [usage, setUsage] = useState<{
     requests: number;
     totalTokens: number;
+    costUsd: number | null;
+    modelLabel: string;
     mocked: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,6 +55,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           baseModel,
+          model,
           garments: garments.map((g) => ({
             imageUrl: g.imageUrl,
             type: g.type,
@@ -86,6 +92,9 @@ export default function Home() {
         {/* Left column: controls */}
         <div className="flex flex-col gap-4">
           <BaseModelPicker selected={baseModel} onSelect={setBaseModel} />
+          <div className="rounded-xl border border-black/10 bg-white p-4 shadow-sm">
+            <ModelPicker selected={model} onSelect={setModel} />
+          </div>
           <AddGarmentForm onAdd={addGarment} />
 
           {garments.length > 0 && (
@@ -119,8 +128,8 @@ export default function Home() {
           </button>
           <p className="text-center text-[11px] text-gray-400">
             {garments.length > 0
-              ? `This outfit = ${garments.length} image request${garments.length === 1 ? "" : "s"} (1 per garment). Gemini image generation has no free tier — about $0.039 each, so ~$${(garments.length * 0.039).toFixed(2)} per generation.`
-              : "Each garment is one AI image edit. Layering is applied automatically by item type. Note: Gemini image generation has no free tier (~$0.039 per image)."}
+              ? `This outfit = ${garments.length} image request${garments.length === 1 ? "" : "s"} (1 per garment), billed to your OpenRouter credits for the selected model.`
+              : "Each garment is one AI image edit, billed to your OpenRouter credits. Layering is applied automatically by item type."}
           </p>
         </div>
 

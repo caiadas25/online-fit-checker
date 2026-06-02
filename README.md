@@ -11,36 +11,49 @@ together (e.g. a jacket over a shirt with a tie) before buying.
    a type (top, jacket, tie, bottoms, …).
 2. **Pick a base model** — a bundled mannequin, or upload a real front-facing photo
    for the most realistic result.
-3. **Generate** — the items are sorted into layer order (skin-adjacent → outerwear)
-   and applied one at a time with [Gemini 2.5 Flash Image](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-image),
-   each edit stacking on the previous so layering reads correctly. You get a
-   photorealistic image you can regenerate or download.
+3. **Choose an image model** — Gemini or GPT, selectable per generation.
+4. **Generate** — the items are sorted into layer order (skin-adjacent → outerwear)
+   and applied one at a time, each edit stacking on the previous so layering reads
+   correctly. You get an image you can regenerate or download.
+
+## Image generation (OpenRouter)
+
+Image generation runs through [OpenRouter](https://openrouter.ai), so a single API
+key + credit balance covers multiple models. The UI lets you pick per generation:
+
+| UI option | OpenRouter model        |
+| --------- | ----------------------- |
+| Gemini    | `google/gemini-2.5-flash-image` |
+| GPT       | `openai/gpt-5-image`    |
+
+Both are image-**output** models that accept the base photo + garment image and
+return an edited composite (OpenAI-compatible `chat/completions` with
+`modalities: ["image","text"]`; the result image comes back in `message.images`).
+Cost is billed to your OpenRouter credits and the app shows the actual per-generation
+cost OpenRouter reports.
 
 ## Setup
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in GEMINI_API_KEY
+cp .env.example .env.local   # then fill in OPENROUTER_API_KEY
 npm run dev                  # http://localhost:3000
 ```
 
-- Get a Gemini API key at https://aistudio.google.com/apikey.
+- Get an OpenRouter API key at https://openrouter.ai/keys and add credits at
+  https://openrouter.ai/credits.
 - Leave `MOCK_TRYON=1` (or omit the key) to develop against a bundled sample
-  composite without spending API credits. Set `MOCK_TRYON=0` with a real key for
+  composite without spending credits. Set `MOCK_TRYON=0` with a real key for
   actual try-on.
-
-## Cost
-
-Each garment is one Gemini image edit (~$0.039), so a 3-item outfit costs ~$0.12
-per generation. Regenerating re-runs the whole stack.
 
 ## Architecture
 
-- `app/page.tsx` — client UI: garment list, base-model picker, result panel.
+- `app/page.tsx` — client UI: garment list, base-model picker, model picker, result panel.
 - `app/api/extract` — scrapes a product image from a store URL (SSRF-guarded).
-- `app/api/tryon` — iterative Gemini composition into one outfit image.
+- `app/api/tryon` — iterative composition into one outfit image, with a `model` param.
 - `lib/scrape.ts` — HTML → product image/title extraction.
-- `lib/gemini.ts` — `composeOutfit()`, the per-garment edit loop (+ mock mode).
+- `lib/imagegen.ts` — `composeOutfit()`, the per-garment OpenRouter edit loop (+ mock mode).
+- `lib/model-options.ts` — client-safe model keys/labels shared by UI and server.
 - `lib/garments.ts` — garment types and `sortByLayer()` layering logic.
 
 ## Notes & limitations
@@ -54,5 +67,5 @@ per generation. Regenerating re-runs the whole stack.
 
 ## Deploy
 
-Deploys to [Vercel](https://vercel.com). Set `GEMINI_API_KEY` (and `MOCK_TRYON=0`)
+Deploys to [Vercel](https://vercel.com). Set `OPENROUTER_API_KEY` (and `MOCK_TRYON=0`)
 as project environment variables. The API routes run on the Node.js runtime.
