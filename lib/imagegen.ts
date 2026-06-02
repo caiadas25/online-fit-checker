@@ -8,11 +8,12 @@ export { MODEL_KEYS, type ModelKey };
 const MAX_IMAGE_BYTES = 7 * 1024 * 1024;
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// Map each model key to its OpenRouter model ID (image-output capable).
-const OPENROUTER_MODEL_IDS: Record<ModelKey, string> = {
-  gemini: "google/gemini-2.5-flash-image",
-  gpt: "openai/gpt-5-image",
-  seedream: "bytedance-seed/seedream-4.5",
+// Map each model key to its OpenRouter model ID and the output modalities its
+// endpoint actually supports (Seedream is image-only; requesting "text" too 404s).
+const OPENROUTER_MODELS: Record<ModelKey, { id: string; modalities: string[] }> = {
+  gemini: { id: "google/gemini-2.5-flash-image", modalities: ["image", "text"] },
+  gpt: { id: "openai/gpt-5-image", modalities: ["image", "text"] },
+  seedream: { id: "bytedance-seed/seedream-4.5", modalities: ["image"] },
 };
 
 export interface ImageInput {
@@ -160,7 +161,7 @@ export async function composeOutfit(
   garments: OutfitGarment[],
   modelKey: ModelKey,
 ): Promise<OutfitResult> {
-  const modelId = OPENROUTER_MODEL_IDS[modelKey] ?? OPENROUTER_MODEL_IDS.gemini;
+  const modelCfg = OPENROUTER_MODELS[modelKey] ?? OPENROUTER_MODELS.gemini;
   const modelLabel = MODEL_LABELS[modelKey] ?? MODEL_LABELS.gemini;
 
   if (isMock()) {
@@ -193,8 +194,8 @@ export async function composeOutfit(
         "X-Title": "Online Fit Checker",
       },
       body: JSON.stringify({
-        model: modelId,
-        modalities: ["image", "text"],
+        model: modelCfg.id,
+        modalities: modelCfg.modalities,
         usage: { include: true },
         messages: [
           {
