@@ -17,6 +17,20 @@ export interface OutfitGarment {
   label: string;
 }
 
+export interface OutfitResult {
+  image: string; // data URL
+  usage: {
+    /** Number of Gemini requests made — one per garment. This is what rate limits count. */
+    requests: number;
+    /** Total tokens billed across all requests (sum of usageMetadata), 0 if unreported. */
+    totalTokens: number;
+    /** True when produced by mock mode rather than a real API call. */
+    mocked: boolean;
+  };
+}
+
+const TOKENS_PER_IMAGE = 1290; // each generated image ≈ 1290 output tokens (per Google pricing)
+
 function isMock(): boolean {
   return process.env.MOCK_TRYON === "1" || !process.env.GEMINI_API_KEY;
 }
@@ -109,13 +123,21 @@ function toDataUrl(img: ImageInput): string {
 export async function composeOutfit(
   baseModelSrc: string,
   garments: OutfitGarment[],
-): Promise<string> {
+): Promise<OutfitResult> {
   if (isMock()) {
-    return toDataUrl(await loadImage("/sample-composite.svg"));
+    return {
+      image: toDataUrl(await loadImage("/sample-composite.svg")),
+      usage: {
+        requests: garments.length,
+        totalTokens: garments.length * TOKENS_PER_IMAGE, // estimate; no real call made
+        mocked: true,
+      },
+    };
   }
 
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
   let current = await loadImage(baseModelSrc);
+  let totalTokens = 0;
 
   for (const garment of garments) {
     const garmentImg = await loadImage(garment.imageUrl);
@@ -132,6 +154,7 @@ export async function composeOutfit(
         },
       ],
     });
+    totalTokens += response.usageMetadata?.totalTokenCount ?? 0;
     const next = imageFromResponse(response);
     if (!next) {
       throw new Error(`The model didn't return an image for "${garment.label || garment.type}".`);
@@ -139,5 +162,8 @@ export async function composeOutfit(
     current = next;
   }
 
-  return toDataUrl(current);
+  return {
+    image: toDataUrl(current),
+    usage: { requests: garments.length, totalTokens, mocked: false },
+  };
 }

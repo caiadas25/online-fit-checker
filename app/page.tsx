@@ -12,6 +12,11 @@ export default function Home() {
   const [garments, setGarments] = useState<Garment[]>([]);
   const [baseModel, setBaseModel] = useState<string>(DEFAULT_BASE_MODEL);
   const [image, setImage] = useState<string | null>(null);
+  const [usage, setUsage] = useState<{
+    requests: number;
+    totalTokens: number;
+    mocked: boolean;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,9 +60,11 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to generate the outfit.");
       setImage(data.image);
+      setUsage(data.usage ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setImage(null);
+      setUsage(null);
     } finally {
       setLoading(false);
     }
@@ -111,13 +118,16 @@ export default function Home() {
             {loading ? "Generating…" : image ? "Regenerate outfit" : "Generate outfit"}
           </button>
           <p className="text-center text-[11px] text-gray-400">
-            Each garment is one AI image edit (~$0.04). Layering is applied automatically by item type.
+            {garments.length > 0
+              ? `This outfit = ${garments.length} API request${garments.length === 1 ? "" : "s"} (1 per garment, fired back-to-back). On the free tier, keep outfits small to avoid per-minute rate limits.`
+              : "Each garment is one AI image edit fired back-to-back. Layering is applied automatically by item type."}
           </p>
         </div>
 
         {/* Right column: result */}
         <ResultPanel
           image={image}
+          usage={usage}
           loading={loading}
           error={error}
           hasGarments={garments.length > 0}

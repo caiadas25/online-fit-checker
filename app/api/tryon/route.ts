@@ -34,8 +34,8 @@ export async function POST(req: Request) {
 
   try {
     const ordered = sortByLayer(parsed.data.garments);
-    const image = await composeOutfit(parsed.data.baseModel, ordered);
-    return NextResponse.json({ image });
+    const result = await composeOutfit(parsed.data.baseModel, ordered);
+    return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to generate the outfit.";
     return NextResponse.json({ error: message }, { status: 502 });
