@@ -128,26 +128,44 @@ function layerPrompt(type: GarmentType, label: string): string {
   ].join(" ");
 }
 
-/** Pull the first generated image (data URL) out of an OpenRouter chat-completion response. */
+function isImageUrl(url: unknown): url is string {
+  return typeof url === "string" && (url.startsWith("data:") || /^https?:/.test(url));
+}
+
+/** Pull the first generated image URL (data: or http) out of an OpenRouter response. */
 function imageFromResponse(data: unknown): string | null {
   const msg = (data as { choices?: { message?: Record<string, unknown> }[] })?.choices?.[0]?.message;
   if (!msg) return null;
-  const images = msg.images as { image_url?: { url?: string }; url?: string }[] | undefined;
+  const images = msg.images as ({ image_url?: { url?: string }; url?: string } | string)[] | undefined;
   if (Array.isArray(images)) {
     for (const im of images) {
-      const url = im?.image_url?.url ?? im?.url;
-      if (typeof url === "string" && url.startsWith("data:")) return url;
+      if (isImageUrl(im)) return im;
+      const url = (im as { image_url?: { url?: string }; url?: string })?.image_url?.url ?? (im as { url?: string })?.url;
+      if (isImageUrl(url)) return url;
     }
   }
   // Fallback: some models return image parts inside content.
   const content = msg.content;
   if (Array.isArray(content)) {
     for (const part of content as { image_url?: { url?: string } }[]) {
-      const url = part?.image_url?.url;
-      if (typeof url === "string" && url.startsWith("data:")) return url;
+      if (isImageUrl(part?.image_url?.url)) return part.image_url!.url!;
     }
   }
   return null;
+}
+
+/** Any assistant text in the response — used to explain why no image came back. */
+function textFromResponse(data: unknown): string {
+  const msg = (data as { choices?: { message?: Record<string, unknown> }[] })?.choices?.[0]?.message;
+  if (!msg) return "";
+  if (typeof msg.content === "string") return msg.content;
+  if (Array.isArray(msg.content)) {
+    return (msg.content as { text?: string }[])
+      .map((p) => p?.text ?? "")
+      .join(" ")
+      .trim();
+  }
+  return "";
 }
 
 /** Map OpenRouter HTTP errors to clear, user-facing messages. */
@@ -249,11 +267,14 @@ export async function composeOutfit(
     }
     const next = imageFromResponse(data);
     if (!next) {
+      const said = textFromResponse(data);
       throw new Error(
-        `${modelLabel} didn't return an image for "${garment.label || garment.type}". It may not support image editing for this input.`,
+        `${modelLabel} returned no image for "${garment.label || garment.type}".` +
+          (said ? ` Model said: "${said.slice(0, 240)}"` : " Try a different model or regenerate."),
       );
     }
-    currentDataUrl = next;
+    // Normalize to a self-contained data URL (so it downloads and feeds forward reliably).
+    currentDataUrl = next.startsWith("data:") ? next : toDataUrl(await loadImage(next));
   }
 
   if (currentDataUrl === null) {
