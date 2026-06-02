@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="640" viewBox="0 0 480 640">
+  <rect width="480" height="640" fill="#f1f0ec"/>
+  <g fill="#c8c4bb">
+    <circle cx="240" cy="110" r="52"/>
+    <rect x="206" y="150" width="68" height="40" rx="18"/>
+    <path d="M150 210 Q240 180 330 210 L350 420 Q240 450 130 420 Z"/>
+    <rect x="120" y="205" width="44" height="210" rx="22" transform="rotate(8 142 310)"/>
+    <rect x="316" y="205" width="44" height="210" rx="22" transform="rotate(-8 338 310)"/>
+    <rect x="175" y="430" width="56" height="180" rx="26"/>
+    <rect x="249" y="430" width="56" height="180" rx="26"/>
+  </g>
+  <text x="240" y="625" font-family="Arial, sans-serif" font-size="20" fill="#8a857c" text-anchor="middle">Mannequin A</text>
+</svg>

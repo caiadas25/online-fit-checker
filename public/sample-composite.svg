@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="640" viewBox="0 0 480 640">
+  <rect width="480" height="640" fill="#f6f4ef"/>
+  <g>
+    <circle cx="240" cy="108" r="50" fill="#e3c9a8"/>
+    <rect x="210" y="146" width="60" height="34" rx="16" fill="#e3c9a8"/>
+    <!-- shirt -->
+    <path d="M156 200 Q240 174 324 200 L340 410 Q240 442 140 410 Z" fill="#dfe6ee"/>
+    <!-- tie -->
+    <path d="M240 190 l-12 18 12 14 12 -14 z" fill="#b23b3b"/>
+    <path d="M232 222 l16 0 8 120 -16 14 -16 -14 z" fill="#b23b3b"/>
+    <!-- jacket -->
+    <path d="M150 196 Q188 182 210 196 L240 250 L270 196 Q292 182 330 196 L348 415 Q300 440 300 440 L300 250 L180 250 L180 440 Q140 432 132 415 Z" fill="#2f3a4a"/>
+    <rect x="126" y="196" width="40" height="210" rx="20" transform="rotate(7 146 300)" fill="#2f3a4a"/>
+    <rect x="314" y="196" width="40" height="210" rx="20" transform="rotate(-7 334 300)" fill="#2f3a4a"/>
+    <!-- trousers -->
+    <rect x="182" y="430" width="52" height="180" rx="14" fill="#3a3f47"/>
+    <rect x="246" y="430" width="52" height="180" rx="14" fill="#3a3f47"/>
+  </g>
+  <text x="240" y="628" font-family="Arial, sans-serif" font-size="18" fill="#9a948a" text-anchor="middle">Sample composite (mock mode)</text>
+</svg>

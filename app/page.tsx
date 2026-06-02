@@ -1,65 +1,128 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import AddGarmentForm from "@/components/AddGarmentForm";
+import GarmentCard from "@/components/GarmentCard";
+import BaseModelPicker from "@/components/BaseModelPicker";
+import ResultPanel from "@/components/ResultPanel";
+import { sortByLayer, type Garment, type GarmentType } from "@/lib/garments";
+import { DEFAULT_BASE_MODEL } from "@/lib/models";
 
 export default function Home() {
+  const [garments, setGarments] = useState<Garment[]>([]);
+  const [baseModel, setBaseModel] = useState<string>(DEFAULT_BASE_MODEL);
+  const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function addGarment(g: Garment) {
+    setGarments((prev) => [...prev, g]);
+  }
+  function removeGarment(id: string) {
+    setGarments((prev) => prev.filter((g) => g.id !== id));
+  }
+  function changeType(id: string, type: GarmentType) {
+    setGarments((prev) => prev.map((g) => (g.id === id ? { ...g, type } : g)));
+  }
+  function moveGarment(id: string, dir: -1 | 1) {
+    setGarments((prev) => {
+      const i = prev.findIndex((g) => g.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  }
+
+  async function generate() {
+    if (garments.length === 0) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/tryon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          baseModel,
+          garments: garments.map((g) => ({
+            imageUrl: g.imageUrl,
+            type: g.type,
+            label: g.label,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to generate the outfit.");
+      setImage(data.image);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setImage(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Preview the order garments will actually be layered in.
+  const layered = sortByLayer(garments);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="mx-auto min-h-screen max-w-6xl px-4 py-8 text-gray-900">
+      <header className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Online Fit Checker</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Add clothing from store links or uploads, then see the whole outfit on one model.
+        </p>
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        {/* Left column: controls */}
+        <div className="flex flex-col gap-4">
+          <BaseModelPicker selected={baseModel} onSelect={setBaseModel} />
+          <AddGarmentForm onAdd={addGarment} />
+
+          {garments.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-gray-800">
+                  Outfit ({garments.length})
+                </h2>
+                <span className="text-xs text-gray-400">layered base → outer</span>
+              </div>
+              {layered.map((g, i) => (
+                <GarmentCard
+                  key={g.id}
+                  garment={g}
+                  index={i}
+                  count={layered.length}
+                  onChangeType={changeType}
+                  onMove={moveGarment}
+                  onRemove={removeGarment}
+                />
+              ))}
+            </div>
+          )}
+
+          <button
+            onClick={generate}
+            disabled={loading || garments.length === 0}
+            className="rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-40"
+          >
+            {loading ? "Generating…" : image ? "Regenerate outfit" : "Generate outfit"}
+          </button>
+          <p className="text-center text-[11px] text-gray-400">
+            Each garment is one AI image edit (~$0.04). Layering is applied automatically by item type.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+        {/* Right column: result */}
+        <ResultPanel
+          image={image}
+          loading={loading}
+          error={error}
+          hasGarments={garments.length > 0}
+        />
+      </div>
+    </main>
   );
 }
