@@ -105,27 +105,32 @@ const ARTICLE: Record<GarmentType, string> = {
 
 /**
  * Build one prompt that composes the whole outfit in a single request.
- * `garments` are pre-sorted innermost→outermost. We deliberately do NOT include
- * the scraped store title (it caused models to render that text into the image),
- * and we reference each garment by its image position.
+ *
+ * Crucially, the reference photos are usually e-commerce HERO shots: a real model
+ * wearing the target item ALONGSIDE other clothing, with brand logos and size/height
+ * text overlaid. So we must tell the model to extract ONLY the named garment from each
+ * photo and ignore everything else. `garments` are pre-sorted innermost→outermost.
  */
 function buildOutfitPrompt(garments: OutfitGarment[], hasBaseImage: boolean): string {
   // Image index where the garments start (1-based, after an optional base photo).
   const offset = hasBaseImage ? 2 : 1;
-  const lines = garments.map((g, i) => `Image ${i + offset} is the ${ARTICLE[g.type]}.`);
+  const lines = garments.map(
+    (g, i) =>
+      `From image ${i + offset}, take ONLY the ${ARTICLE[g.type]} — ignore the model and any other clothing, footwear, or accessories they are wearing in that photo.`,
+  );
 
   const subject = hasBaseImage
-    ? "The first image shows a person. Keep their exact face, body, hair, and skin, and use a plain studio background."
-    : "Render a single neutral, faceless, light-gray full-body display mannequin standing front-facing on a seamless light-gray studio background.";
+    ? "The first image shows the target person. Keep their exact face, body, hair, and skin, on a plain light-gray studio background."
+    : "Render one neutral, faceless, light-gray full-body display mannequin standing front-facing on a seamless light-gray studio background.";
 
   return [
     subject,
-    `The remaining ${garments.length} image(s) are the garments to put on, listed from innermost to outermost layer:`,
+    `You are given ${garments.length} reference photo(s). Each one shows a real model wearing one target garment, usually together with other clothes, brand logos, and size/height text — all of which must be IGNORED.`,
     lines.join(" "),
-    `Dress the figure in ALL of these garments together as one complete, coherent outfit, layered naturally in that order (e.g. shirts under jackets, ties over shirts).`,
-    `Reproduce each garment exactly as shown in its image — identical colour, wash, pattern, texture, cut, and length. Do not substitute, restyle, or recolour them.`,
-    `Show the entire figure from head to feet, centred and full-length — do not crop or zoom in on one garment.`,
-    `Do NOT add any text, captions, labels, logos, price tags, or watermarks anywhere in the image.`,
+    `Dress the figure in exactly those extracted garments as one coherent outfit, layered innermost→outermost in the order listed (e.g. shirts under jackets, ties over shirts).`,
+    `Match each extracted garment precisely: same colour, pattern, knit/weave, fabric, cut, and length as in its photo. Do not restyle or recolour it, and do not copy any garment that wasn't named.`,
+    `Show the entire figure from head to feet, centred and full-length — do not crop or zoom in.`,
+    `Do NOT render any text, captions, size labels, brand logos, price tags, or watermarks anywhere in the image.`,
     `Output only the final composed image.`,
   ].join(" ");
 }
