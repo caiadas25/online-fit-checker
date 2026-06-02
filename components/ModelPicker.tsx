@@ -13,7 +13,7 @@ export default function ModelPicker({ selected, onSelect }: Props) {
       <div className="mb-1 flex items-baseline justify-between">
         <span className="text-xs font-medium text-gray-500">Image model (via OpenRouter)</span>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {MODEL_OPTIONS.map((m) => {
           const active = selected === m.key;
           return (

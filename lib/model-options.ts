@@ -4,6 +4,7 @@
 export const MODEL_OPTIONS = [
   { key: "gemini", label: "Gemini", sub: "2.5 Flash Image" },
   { key: "gpt", label: "GPT", sub: "GPT-5 Image" },
+  { key: "seedream", label: "Seedream", sub: "4.5 Edit" },
 ] as const;
 
 export type ModelKey = (typeof MODEL_OPTIONS)[number]["key"];

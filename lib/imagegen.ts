@@ -12,6 +12,7 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_MODEL_IDS: Record<ModelKey, string> = {
   gemini: "google/gemini-2.5-flash-image",
   gpt: "openai/gpt-5-image",
+  seedream: "bytedance-seed/seedream-4.5",
 };
 
 export interface ImageInput {
