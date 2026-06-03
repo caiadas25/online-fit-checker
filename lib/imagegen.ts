@@ -97,8 +97,8 @@ const ARTICLE: Record<GarmentType, string> = {
   top: "top / shirt",
   bottom: "bottoms (pants/skirt)",
   dress: "dress",
-  jacket: "jacket / outerwear (outermost layer)",
-  tie: "necktie (worn over the shirt)",
+  jacket: "jacket / outerwear",
+  tie: "necktie",
   shoes: "shoes",
   accessory: "accessory",
 };
@@ -106,33 +106,37 @@ const ARTICLE: Record<GarmentType, string> = {
 /**
  * Build one prompt that composes the whole outfit in a single request.
  *
- * Crucially, the reference photos are usually e-commerce HERO shots: a real model
- * wearing the target item ALONGSIDE other clothing, with brand logos and size/height
- * text overlaid. So we must tell the model to extract ONLY the named garment from each
- * photo and ignore everything else. `garments` are pre-sorted innermost→outermost.
+ * Reference photos are e-commerce HERO shots: a real model wearing the target
+ * item ALONGSIDE other clothing, brand logos, and overlaid text. The model must
+ * extract ONLY the named garment from each photo and ignore everything else.
+ * `garments` are pre-sorted innermost→outermost.
+ *
+ * Restructured as numbered steps with strong extraction language to improve
+ * adherence on weaker image models (Gemini Flash, etc.).
  */
 function buildOutfitPrompt(garments: OutfitGarment[], hasBaseImage: boolean): string {
-  // Image index where the garments start (1-based, after an optional base photo).
   const offset = hasBaseImage ? 2 : 1;
-  const lines = garments.map(
-    (g, i) =>
-      `From image ${i + offset}, take ONLY the ${ARTICLE[g.type]} — ignore the model and any other clothing, footwear, or accessories they are wearing in that photo.`,
-  );
 
   const subject = hasBaseImage
     ? "The first image shows the target person. Keep their exact face, body, hair, and skin, on a plain light-gray studio background."
-    : "Render one neutral, faceless, light-gray full-body display mannequin standing front-facing on a seamless light-gray studio background.";
+    : "Generate one neutral, faceless, light-gray full-body mannequin standing front-facing on a seamless light-gray studio background. The mannequin should be slim, average height, with no facial features.";
+
+  const extractionSteps = garments.map(
+    (g, i) =>
+      `Step ${i + 2}: From image ${i + offset}, extract ONLY the ${ARTICLE[g.type]}. Ignore the person, ignore all other clothing, ignore shoes, ignore accessories, ignore logos, ignore text. Copy the garment's exact colour, fabric, cut, length, collar style, sleeve length, and pattern. If the garment is pink, it stays pink. If it is denim, it stays denim. Do not change or restyle it.`,
+  );
 
   return [
     subject,
-    `You are given ${garments.length} reference photo(s). Each one shows a real model wearing one target garment, usually together with other clothes, brand logos, and size/height text — all of which must be IGNORED.`,
-    lines.join(" "),
-    `Dress the figure in exactly those extracted garments as one coherent outfit, layered innermost→outermost in the order listed (e.g. shirts under jackets, ties over shirts).`,
-    `Match each extracted garment precisely: same colour, pattern, knit/weave, fabric, cut, and length as in its photo. Do not restyle or recolour it, and do not copy any garment that wasn't named.`,
-    `Show the entire figure from head to feet, centred and full-length — do not crop or zoom in.`,
-    `Do NOT render any text, captions, size labels, brand logos, price tags, or watermarks anywhere in the image.`,
-    `Output only the final composed image.`,
-  ].join(" ");
+    `You are given ${garments.length + (hasBaseImage ? 1 : 0)} image(s). Images ${Array.from({ length: garments.length }, (_, i) => i + offset).join(", ")} are reference photos of individual garments on models. Each photo shows many items — you must extract ONLY the one named below from each.`,
+    "EXTRACTION STEPS (follow in order):",
+    ...extractionSteps,
+    `Step ${garments.length + 2}: Compose the extracted garments onto the mannequin as ONE outfit, layered from innermost to outermost in the order listed. Shirts go under jackets. Ties go over shirts. Bottoms sit at the waist.`,
+    `CRITICAL — Match each garment EXACTLY: same colour (do not recolour), same fabric texture, same cut, same length, same collar/sleeve style. A pink polo shirt must appear as a pink polo, NOT a blue V-neck. A dark denim jacket must appear as a dark denim jacket, NOT disappear.`,
+    "Show the ENTIRE figure from head to feet, centred, full-length. Do not crop or zoom in.",
+    "Do NOT render any text, captions, labels, logos, price tags, or watermarks.",
+    "Output only the final composed image.",
+  ].join("\n\n");
 }
 
 function isImageUrl(url: unknown): url is string {
