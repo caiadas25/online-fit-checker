@@ -4,6 +4,7 @@ import { useState } from "react";
 import AddGarmentForm from "@/components/AddGarmentForm";
 import GarmentCard from "@/components/GarmentCard";
 import ResultPanel from "@/components/ResultPanel";
+import DebugPanel from "@/components/DebugPanel";
 import { sortByLayer, type Garment, type GarmentType } from "@/lib/garments";
 import { MANNEQUIN } from "@/lib/models";
 export default function Home() {
@@ -131,6 +132,7 @@ export default function Home() {
           hasGarments={garments.length > 0}
         />
       </div>
+      <DebugPanel garments={layered} />
     </main>
   );
 }
