@@ -1,6 +1,7 @@
 "use client";
 
 import { sortByLayer, type Garment, type GarmentType } from "@/lib/garments";
+import { IMAGE_GENERATION_SYSTEM_PROMPT } from "@/lib/image-prompts";
 
 interface Props {
   garments: Garment[];
@@ -33,7 +34,7 @@ function buildOutfitPrompt(garments: Garment[]): string {
     `Step ${garments.length + 2}: Compose the extracted garments onto the mannequin as ONE outfit, layered from innermost to outermost in the order listed. Shirts go under jackets. Ties go over shirts. Bottoms sit at the waist.`,
     `CRITICAL — Match each garment EXACTLY: same colour (do not recolour), same fabric texture, same cut, same length, same collar/sleeve style. A pink polo shirt must appear as a pink polo, NOT a blue V-neck. A dark denim jacket must appear as a dark denim jacket, NOT disappear.`,
     "Show the ENTIRE figure from head to feet, centred, full-length. Do not crop or zoom in.",
-    "Do NOT render any text, captions, labels, logos, price tags, or watermarks.",
+    "Do NOT render any text, captions, labels, logos, price tags, size labels, measurements, signatures, UI, or watermarks.",
     "Output only the final composed image.",
   ].join("\n\n");
 }
@@ -85,7 +86,17 @@ export default function DebugPanel({ garments }: Props) {
       </div>
 
       <h2 className="mb-1 text-sm font-black text-[#151515]">
-        Debug: text prompt sent to the model
+        Debug: system prompt sent to the model
+      </h2>
+      <p className="mb-2 text-xs font-bold text-[#746f67]">
+        This instruction is sent as a separate system message before the image prompt.
+      </p>
+      <pre className="mb-5 overflow-x-auto whitespace-pre-wrap rounded-2xl border-2 border-[#151515] bg-white p-3 text-[11px] font-bold leading-relaxed text-[#39352f]">
+        {IMAGE_GENERATION_SYSTEM_PROMPT}
+      </pre>
+
+      <h2 className="mb-1 text-sm font-black text-[#151515]">
+        Debug: user prompt sent to the model
       </h2>
       <p className="mb-2 text-xs font-bold text-[#746f67]">
         This is the exact text content accompanying the images in the API request.

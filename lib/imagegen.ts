@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { GarmentType } from "./garments";
+import { IMAGE_GENERATION_SYSTEM_PROMPT } from "./image-prompts";
 import { MODEL_KEYS, MODEL_LABELS, type ModelKey } from "./model-options";
 
 export { MODEL_KEYS, type ModelKey };
@@ -135,7 +136,7 @@ function buildOutfitPrompt(garments: OutfitGarment[], hasBaseImage: boolean): st
     `Step ${garments.length + 2}: Compose the extracted garments onto the mannequin as ONE outfit, layered from innermost to outermost in the order listed. Shirts go under jackets. Ties go over shirts. Bottoms sit at the waist.`,
     `CRITICAL — Match each garment EXACTLY: same colour (do not recolour), same fabric texture, same cut, same length, same collar/sleeve style. A pink polo shirt must appear as a pink polo, NOT a blue V-neck. A dark denim jacket must appear as a dark denim jacket, NOT disappear.`,
     "Show the ENTIRE figure from head to feet, centred, full-length. Do not crop or zoom in.",
-    "Do NOT render any text, captions, labels, logos, price tags, or watermarks.",
+    "Do NOT render any text, captions, labels, logos, price tags, size labels, measurements, signatures, UI, or watermarks.",
     "Output only the final composed image.",
   ].join("\n\n");
 }
@@ -246,7 +247,10 @@ export async function composeOutfit(
       model: modelCfg.id,
       modalities: modelCfg.modalities,
       usage: { include: true },
-      messages: [{ role: "user", content }],
+      messages: [
+        { role: "system", content: IMAGE_GENERATION_SYSTEM_PROMPT },
+        { role: "user", content },
+      ],
     }),
   });
 

@@ -65,7 +65,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#f8f4ec] text-[#151515]">
-      <section className="relative isolate min-h-screen px-4 py-5 sm:px-6 lg:px-8">
+      <section className="relative isolate px-4 pb-6 pt-5 sm:px-6 lg:px-8 lg:pb-8">
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(120deg,#f8f4ec_0%,#f8f4ec_42%,#f6ff70_42%,#f6ff70_58%,#ff6bb5_58%,#ff6bb5_72%,#62d8ff_72%,#62d8ff_100%)] opacity-25" />
 
         <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-full border-2 border-[#151515] bg-[#fffaf0]/90 px-4 py-3 shadow-[6px_6px_0_#151515]">
@@ -90,15 +90,15 @@ export default function Home() {
           </Link>
         </nav>
 
-        <div className="mx-auto grid max-w-7xl gap-10 pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.86fr)] lg:items-center lg:pt-16">
+        <div className="mx-auto grid max-w-7xl gap-8 pt-8 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.86fr)] lg:items-center lg:pt-8">
           <div>
             <div className="inline-flex rotate-[-1deg] items-center gap-2 rounded-full border-2 border-[#151515] bg-[#f6ff70] px-4 py-2 text-xs font-black uppercase shadow-[4px_4px_0_#151515]">
               AI fit checks before checkout
             </div>
-            <h1 className="mt-7 max-w-4xl text-6xl font-black leading-[0.9] tracking-normal text-[#151515] sm:text-7xl lg:text-8xl">
+            <h1 className="mt-6 max-w-4xl text-6xl font-black leading-[0.9] tracking-normal text-[#151515] sm:text-7xl lg:text-[5.25rem]">
               Stop guessing. Start looping the whole look.
             </h1>
-            <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-[#39352f] sm:text-xl">
+            <p className="mt-5 max-w-2xl text-lg font-semibold leading-8 text-[#39352f] sm:text-xl">
               Paste clothes from any store, mix them into one outfit, and see the fit on a model
               before your cart turns into regret.
             </p>
@@ -154,7 +154,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="mt-10 grid max-w-2xl grid-cols-3 gap-3">
+            <div className="mt-8 grid max-w-2xl grid-cols-3 gap-3">
               {stats.map((stat) => (
                 <div
                   key={stat.value}
@@ -183,13 +183,13 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+      <section className="px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
           <div className="lg:sticky lg:top-6">
             <div className="inline-flex rotate-[-1deg] rounded-full border-2 border-[#151515] bg-[#62d8ff] px-4 py-2 text-xs font-black uppercase shadow-[4px_4px_0_#151515]">
               How it works
             </div>
-            <h2 className="mt-5 max-w-xl text-4xl font-black leading-[0.95] sm:text-5xl">
+            <h2 className="mt-4 max-w-xl text-4xl font-black leading-[0.95] sm:text-5xl">
               From cart chaos to one clear fit check.
             </h2>
             <p className="mt-4 max-w-lg text-base font-bold leading-7 text-[#39352f]">
@@ -208,7 +208,7 @@ export default function Home() {
             {howItWorks.map((step) => (
               <article
                 key={step.number}
-                className="min-h-56 border-2 border-[#151515] bg-[#fffaf0] p-5 shadow-[7px_7px_0_#151515]"
+                className="min-h-48 border-2 border-[#151515] bg-[#fffaf0] p-5 shadow-[7px_7px_0_#151515]"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-mono text-sm font-black">{step.number}</span>
@@ -216,8 +216,8 @@ export default function Home() {
                     loop step
                   </span>
                 </div>
-                <h3 className="mt-8 text-2xl font-black leading-7">{step.title}</h3>
-                <p className="mt-4 text-sm font-bold leading-6 text-[#39352f]">
+                <h3 className="mt-6 text-2xl font-black leading-7">{step.title}</h3>
+                <p className="mt-3 text-sm font-bold leading-6 text-[#39352f]">
                   {step.text}
                 </p>
               </article>
@@ -282,12 +282,12 @@ function FitPreview() {
               </span>
             </div>
             <Image
-              src="/landing-fit-preview.png"
+              src="/landing-fit-preview-clean.png"
               alt="Lookloop outfit composite preview"
               width={864}
               height={1184}
               priority
-              className="h-[420px] w-full bg-white object-contain"
+              className="h-[360px] w-full bg-white object-contain"
             />
           </div>
 
