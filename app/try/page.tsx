@@ -11,7 +11,7 @@ import { MANNEQUIN } from "@/lib/models";
 
 const workflow = ["Paste", "Upload", "Layer", "Generate"];
 
-const SHOW_DEV_TOOLS = process.env.NODE_ENV !== "production";
+const SHOW_DEV_TOOLS = true;
 
 const DEV_TEST_GARMENTS: { label: string; type: GarmentType; url: string }[] = [
   {
