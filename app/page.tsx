@@ -85,7 +85,7 @@ export default function Home() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         {/* Left column: controls */}
         <div className="flex flex-col gap-4">
-          <AddGarmentForm onAdd={addGarment} />
+          <AddGarmentForm onAdd={addGarment} garments={garments} />
 
           {garments.length > 0 && (
             <div className="flex flex-col gap-2">

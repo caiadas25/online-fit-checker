@@ -5,6 +5,7 @@ import type { Garment, GarmentType } from "@/lib/garments";
 
 interface Props {
   onAdd: (garment: Garment) => void;
+  garments: Garment[];
 }
 
 function newId(): string {
@@ -36,12 +37,23 @@ const OTHER_CARDS: { type: GarmentType; label: string; icon: string }[] = [
   { type: "accessory", label: "Accessory", icon: "💍" },
 ];
 
-export default function AddGarmentForm({ onAdd }: Props) {
+/** Count how many garments of each type exist. */
+function countByType(garments: Garment[]): Partial<Record<GarmentType, number>> {
+  const counts: Partial<Record<GarmentType, number>> = {};
+  for (const g of garments) {
+    counts[g.type] = (counts[g.type] ?? 0) + 1;
+  }
+  return counts;
+}
+
+export default function AddGarmentForm({ onAdd, garments }: Props) {
   const [type, setType] = useState<GarmentType>("top");
   const [showOther, setShowOther] = useState(false);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const counts = countByType(garments);
 
   async function handleUrlAdd() {
     if (!url.trim()) return;
@@ -91,7 +103,6 @@ export default function AddGarmentForm({ onAdd }: Props) {
 
   function selectType(t: GarmentType) {
     setType(t);
-    // If picking a primary type, collapse Other.
     if (PRIMARY_CARDS.some((c) => c.type === t)) {
       setShowOther(false);
     }
@@ -99,7 +110,24 @@ export default function AddGarmentForm({ onAdd }: Props) {
 
   function handleOtherClick() {
     setShowOther((prev) => !prev);
-    // When expanding Other, don't change the selected type yet.
+  }
+
+  /**
+   * Figure out the visual state of a card:
+   *  - active: currently selected for the next add
+   *  - used: has garments of this type in the outfit (but not selected now)
+   */
+  function cardStyle(t: GarmentType, isOther = false): string {
+    const active = type === t && (isOther || !showOther);
+    const used = (counts[t] ?? 0) > 0;
+
+    if (active) {
+      return "border-gray-900 bg-gray-900 text-white";
+    }
+    if (used) {
+      return "border-gray-400 bg-gray-100 text-gray-800";
+    }
+    return "border-black/10 bg-gray-50 text-gray-700 hover:border-black/25";
   }
 
   return (
@@ -113,24 +141,22 @@ export default function AddGarmentForm({ onAdd }: Props) {
         What kind of item?
       </label>
       <div className="mb-2 grid grid-cols-5 gap-2">
-        {PRIMARY_CARDS.map((c) => {
-          const active = type === c.type && !showOther;
-          return (
-            <button
-              key={c.type}
-              type="button"
-              onClick={() => selectType(c.type)}
-              className={`flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-3 text-center transition ${
-                active
-                  ? "border-gray-900 bg-gray-900 text-white"
-                  : "border-black/10 bg-gray-50 text-gray-700 hover:border-black/25"
-              }`}
-            >
-              <span className="text-2xl leading-none">{c.icon}</span>
-              <span className="text-[11px] font-medium">{c.label}</span>
-            </button>
-          );
-        })}
+        {PRIMARY_CARDS.map((c) => (
+          <button
+            key={c.type}
+            type="button"
+            onClick={() => selectType(c.type)}
+            className={`relative flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-3 text-center transition ${cardStyle(c.type)}`}
+          >
+            {(counts[c.type] ?? 0) > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-gray-800 px-1 text-[10px] font-bold text-white">
+                {counts[c.type]}
+              </span>
+            )}
+            <span className="text-2xl leading-none">{c.icon}</span>
+            <span className="text-[11px] font-medium">{c.label}</span>
+          </button>
+        ))}
         <button
           type="button"
           onClick={handleOtherClick}
@@ -148,24 +174,22 @@ export default function AddGarmentForm({ onAdd }: Props) {
       {/* Other options (expandable) */}
       {showOther && (
         <div className="mb-3 grid grid-cols-4 gap-2">
-          {OTHER_CARDS.map((c) => {
-            const active = type === c.type;
-            return (
-              <button
-                key={c.type}
-                type="button"
-                onClick={() => selectType(c.type)}
-                className={`flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-2.5 text-center transition ${
-                  active
-                    ? "border-gray-900 bg-gray-900 text-white"
-                    : "border-black/10 bg-gray-50 text-gray-700 hover:border-black/25"
-                }`}
-              >
-                <span className="text-lg leading-none">{c.icon}</span>
-                <span className="text-[10px] font-medium">{c.label}</span>
-              </button>
-            );
-          })}
+          {OTHER_CARDS.map((c) => (
+            <button
+              key={c.type}
+              type="button"
+              onClick={() => selectType(c.type)}
+              className={`relative flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-2.5 text-center transition ${cardStyle(c.type, true)}`}
+            >
+              {(counts[c.type] ?? 0) > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gray-800 px-1 text-[9px] font-bold text-white">
+                  {counts[c.type]}
+                </span>
+              )}
+              <span className="text-lg leading-none">{c.icon}</span>
+              <span className="text-[10px] font-medium">{c.label}</span>
+            </button>
+          ))}
         </div>
       )}
 
