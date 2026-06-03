@@ -186,7 +186,7 @@ async function generateImage(
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "X-Title": "Lookloop",
+      "X-Title": "FitMashr",
     },
     body: JSON.stringify({
       model: modelCfg.id,

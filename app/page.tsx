@@ -12,7 +12,7 @@ const stats = [
 
 const closetItems = ["coral polo", "denim jacket", "olive culottes", "white sandals"];
 
-const drops = ["Vintage denim", "Festival core", "Soft-goth", "Campus fits"];
+const drops = ["Paste", "Upload", "Layer", "Generate"];
 
 const howItWorks = [
   {
@@ -22,13 +22,13 @@ const howItWorks = [
   },
   {
     number: "02",
-    title: "Tell Lookloop what each item is",
+    title: "Tell FitMashr what each item is",
     text: "Tag tops, bottoms, shoes, jackets, dresses, and accessories so layers land in the right order.",
   },
   {
     number: "03",
     title: "Generate one full outfit",
-    text: "Lookloop sends the pieces together and builds a single model preview with the whole fit.",
+    text: "FitMashr mashes the pieces together and builds a single model preview with the whole fit.",
   },
   {
     number: "04",
@@ -70,7 +70,7 @@ export default function Home() {
 
         <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-full border-2 border-[#151515] bg-[#fffaf0]/90 px-4 py-3 shadow-[6px_6px_0_#151515]">
           <Link href="/" className="text-lg font-black tracking-tight">
-            Lookloop
+            FitMashr
           </Link>
           <div className="hidden items-center gap-2 text-xs font-bold uppercase sm:flex">
             {drops.map((drop) => (
@@ -93,14 +93,14 @@ export default function Home() {
         <div className="mx-auto grid max-w-7xl gap-8 pt-8 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.86fr)] lg:items-center lg:pt-8">
           <div>
             <div className="inline-flex rotate-[-1deg] items-center gap-2 rounded-full border-2 border-[#151515] bg-[#f6ff70] px-4 py-2 text-xs font-black uppercase shadow-[4px_4px_0_#151515]">
-              AI fit checks before checkout
+              AI fit checks before cart regret
             </div>
             <h1 className="mt-6 max-w-4xl text-6xl font-black leading-[0.9] tracking-normal text-[#151515] sm:text-7xl lg:text-[5.25rem]">
-              Stop guessing. Start looping the whole look.
+              Stop guessing. Start mashing the whole look.
             </h1>
             <p className="mt-5 max-w-2xl text-lg font-semibold leading-8 text-[#39352f] sm:text-xl">
-              Paste clothes from any store, mix them into one outfit, and see the fit on a model
-              before your cart turns into regret.
+              Paste clothes from any store, mash them into one outfit, and see the fit on a model
+              before your cart starts acting delusional.
             </p>
 
             <form
@@ -150,7 +150,7 @@ export default function Home() {
                 Build a fit
               </Link>
               <p className="text-sm font-bold text-[#514c44]">
-                No spam. One invite when Lookloop is ready.
+                No spam. One invite when FitMashr is ready to cook.
               </p>
             </div>
 
@@ -190,11 +190,11 @@ export default function Home() {
               How it works
             </div>
             <h2 className="mt-4 max-w-xl text-4xl font-black leading-[0.95] sm:text-5xl">
-              From cart chaos to one clear fit check.
+              From cart chaos to one slay-or-nay fit check.
             </h2>
             <p className="mt-4 max-w-lg text-base font-bold leading-7 text-[#39352f]">
-              Lookloop is built for the messy way people actually shop: half browser tabs,
-              half screenshots, and one outfit idea that needs proof.
+              FitMashr is built for the messy way people actually shop: half browser tabs,
+              half screenshots, and one outfit idea that needs receipts.
             </p>
             <Link
               href="/try"
@@ -213,7 +213,7 @@ export default function Home() {
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-mono text-sm font-black">{step.number}</span>
                   <span className="rounded-full bg-[#f6ff70] px-3 py-1 text-[11px] font-black uppercase">
-                    loop step
+                    mash step
                   </span>
                 </div>
                 <h3 className="mt-6 text-2xl font-black leading-7">{step.title}</h3>
@@ -247,7 +247,7 @@ export default function Home() {
       </section>
 
       <footer className="px-4 pb-8 text-center text-xs font-bold text-[#746f67]">
-        © {new Date().getFullYear()} Lookloop
+        © {new Date().getFullYear()} FitMashr
       </footer>
     </main>
   );
@@ -283,7 +283,7 @@ function FitPreview() {
             </div>
             <Image
               src="/landing-fit-preview-clean.png"
-              alt="Lookloop outfit composite preview"
+              alt="FitMashr outfit composite preview"
               width={864}
               height={1184}
               priority
@@ -309,7 +309,7 @@ function FitPreview() {
         <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-black uppercase">
           <span className="rounded-full bg-[#151515] px-3 py-2 text-white">link</span>
           <span className="rounded-full bg-[#f6ff70] px-3 py-2">layer</span>
-          <span className="rounded-full bg-[#ff6bb5] px-3 py-2">loop</span>
+          <span className="rounded-full bg-[#ff6bb5] px-3 py-2">mash</span>
         </div>
       </div>
     </div>

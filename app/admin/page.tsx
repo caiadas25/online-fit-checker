@@ -27,7 +27,7 @@ export default function AdminPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="text-2xl font-bold text-gray-900">Lookloop Waitlist</h1>
+      <h1 className="text-2xl font-bold text-gray-900">FitMashr Waitlist</h1>
 
       {loading && <p className="mt-4 text-sm text-gray-500">Loading…</p>}
       {error && <p className="mt-4 text-sm text-red-500">{error}</p>}

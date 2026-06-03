@@ -218,7 +218,7 @@ export default function TryPage() {
       >
         <nav className="flex items-center justify-between rounded-full border-2 border-[#151515] bg-[#fffaf0]/90 px-4 py-3 shadow-[6px_6px_0_#151515]">
           <Link href="/" className="text-lg font-black tracking-tight">
-            Lookloop
+            FitMashr
           </Link>
           <div className="hidden items-center gap-2 text-xs font-black uppercase md:flex">
             {workflow.map((item) => (
@@ -238,15 +238,15 @@ export default function TryPage() {
         <header className="grid gap-6 py-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
           <div>
             <div className="inline-flex rotate-[-1deg] rounded-full border-2 border-[#151515] bg-[#f6ff70] px-4 py-2 text-xs font-black uppercase shadow-[4px_4px_0_#151515]">
-              Build the look before checkout
+              Build the fit before checkout
             </div>
             <h1 className="mt-5 max-w-4xl text-5xl font-black leading-[0.92] tracking-normal sm:text-6xl lg:text-7xl">
-              Stack your cart into one fit check.
+              Mash your cart into one fit check.
             </h1>
           </div>
           <p className="max-w-xl text-base font-bold leading-7 text-[#39352f] lg:text-right">
             Add store links or uploads, order the layers, then generate one model preview
-            that makes the buy-or-bye decision obvious.
+            that makes the cop-or-drop decision obvious.
           </p>
         </header>
 

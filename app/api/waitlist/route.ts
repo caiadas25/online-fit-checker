@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     await kv.incr("waitlist:count");
 
     return NextResponse.json({
-      message: "You're on the list! We'll notify you when Lookloop launches.",
+      message: "You're on the list! We'll notify you when FitMashr drops.",
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Something went wrong.";
