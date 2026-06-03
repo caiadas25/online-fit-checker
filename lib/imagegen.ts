@@ -109,7 +109,7 @@ const ARTICLE: Record<GarmentType, string> = {
  * Build one prompt that composes the whole outfit in a single request.
  *
  * Reference photos are e-commerce HERO shots: a real model wearing the target
- * item ALONGSIDE other clothing, brand logos, and overlaid text. The model must
+ * item ALONGSIDE other clothing, page text, and unrelated overlays. The model must
  * extract ONLY the named garment from each photo and ignore everything else.
  * `garments` are pre-sorted innermost→outermost.
  *
@@ -125,7 +125,7 @@ function buildOutfitPrompt(garments: OutfitGarment[], hasBaseImage: boolean): st
 
   const extractionSteps = garments.map(
     (g, i) =>
-      `Step ${i + 2}: From image ${i + offset}, extract ONLY the ${ARTICLE[g.type]}. Ignore the person, ignore all other clothing, ignore shoes, ignore accessories, ignore logos, ignore text. Copy the garment's exact colour, fabric, cut, length, collar style, sleeve length, and pattern. If the garment is pink, it stays pink. If it is denim, it stays denim. Do not change or restyle it.`,
+      `Step ${i + 2}: From image ${i + offset}, extract ONLY the ${ARTICLE[g.type]}. Ignore the person, all other clothing, shoes, accessories, page UI, measurement labels, price tags, captions, and watermarks. Copy the garment's exact colour, fabric, cut, length, collar style, sleeve length, stitching, buttons, seams, trims, pattern, print, embroidery, patches, and any logo or lettering physically attached to the garment. If the garment is pink, it stays pink. If it is denim, it stays denim. Do not simplify, change, or restyle it.`,
   );
 
   return [
@@ -134,9 +134,9 @@ function buildOutfitPrompt(garments: OutfitGarment[], hasBaseImage: boolean): st
     "EXTRACTION STEPS (follow in order):",
     ...extractionSteps,
     `Step ${garments.length + 2}: Compose the extracted garments onto the mannequin as ONE outfit, layered from innermost to outermost in the order listed. Shirts go under jackets. Ties go over shirts. Bottoms sit at the waist.`,
-    `CRITICAL — Match each garment EXACTLY: same colour (do not recolour), same fabric texture, same cut, same length, same collar/sleeve style. A pink polo shirt must appear as a pink polo, NOT a blue V-neck. A dark denim jacket must appear as a dark denim jacket, NOT disappear.`,
+    `CRITICAL — Match each garment EXACTLY: same colour (do not recolour), same fabric texture, same cut, same length, same collar/sleeve style, same stitching, same trims, same patterns, and same garment-native logos or lettering when present. A pink polo shirt must appear as a pink polo, NOT a blue V-neck. A dark denim jacket must appear as a dark denim jacket, NOT disappear.`,
     "Show the ENTIRE figure from head to feet, centred, full-length. Do not crop or zoom in.",
-    "Do NOT render any text, captions, labels, logos, price tags, size labels, measurements, signatures, UI, or watermarks.",
+    "Do NOT render unrelated text, captions, product labels, price tags, size labels, measurements, signatures, UI, or watermarks. Logos or text are allowed only when they are physically part of the target garment, and then they should be preserved faithfully.",
     "Output only the final composed image.",
   ].join("\n\n");
 }

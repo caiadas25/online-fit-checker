@@ -11,6 +11,33 @@ import { MANNEQUIN } from "@/lib/models";
 
 const workflow = ["Paste", "Upload", "Layer", "Generate"];
 
+const SHOW_DEV_TOOLS = process.env.NODE_ENV !== "production";
+
+const DEV_TEST_GARMENTS: { label: string; type: GarmentType; url: string }[] = [
+  {
+    label: "bottom",
+    type: "bottom",
+    url: "https://www.uniqlo.com/eu-pt/en/products/E480302-000/00?colorDisplayCode=09&sizeDisplayCode=003",
+  },
+  {
+    label: "top",
+    type: "top",
+    url: "https://www.uniqlo.com/eu-pt/en/products/E485473-000/00?colorDisplayCode=09&sizeDisplayCode=003",
+  },
+  {
+    label: "jacket",
+    type: "jacket",
+    url: "https://www.uniqlo.com/eu-pt/en/products/E478557-000/00?colorDisplayCode=05&sizeDisplayCode=003",
+  },
+];
+
+function newGarmentId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2, 10);
+}
+
 export default function TryPage() {
   const [garments, setGarments] = useState<Garment[]>([]);
   const [image, setImage] = useState<string | null>(null);
@@ -23,6 +50,8 @@ export default function TryPage() {
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [devLoading, setDevLoading] = useState(false);
+  const [devMessage, setDevMessage] = useState<string | null>(null);
 
   function addGarment(g: Garment) {
     setGarments((prev) => [...prev, g]);
@@ -74,6 +103,56 @@ export default function TryPage() {
     }
   }
 
+  async function loadDevTestFit() {
+    setDevLoading(true);
+    setDevMessage(null);
+    setError(null);
+    setImage(null);
+    setUsage(null);
+
+    try {
+      const loaded = await Promise.all(
+        DEV_TEST_GARMENTS.map(async (item) => {
+          const res = await fetch("/api/extract", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: item.url }),
+          });
+          const data = (await res.json()) as {
+            imageUrl?: string;
+            title?: string;
+            error?: string;
+          };
+          if (!res.ok || !data.imageUrl) {
+            throw new Error(data.error || `Failed to load ${item.label}.`);
+          }
+          return {
+            id: newGarmentId(),
+            type: item.type,
+            label: data.title?.slice(0, 60) || item.label,
+            imageUrl: data.imageUrl,
+            sourceUrl: item.url,
+          };
+        }),
+      );
+
+      setGarments(loaded);
+      setDevMessage(`Loaded ${loaded.length} Uniqlo test pieces.`);
+    } catch (err) {
+      setDevMessage(err instanceof Error ? err.message : "Failed to load test fit.");
+    } finally {
+      setDevLoading(false);
+    }
+  }
+
+  function clearFit() {
+    setGarments([]);
+    setImage(null);
+    setUsage(null);
+    setError(null);
+    setDevMessage("Cleared.");
+  }
+
   // Preview the order garments will actually be layered in.
   const layered = sortByLayer(garments);
 
@@ -81,7 +160,11 @@ export default function TryPage() {
     <main className="min-h-screen overflow-hidden bg-[#f8f4ec] text-[#151515]">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(120deg,#f8f4ec_0%,#f8f4ec_42%,#f6ff70_42%,#f6ff70_58%,#ff6bb5_58%,#ff6bb5_72%,#62d8ff_72%,#62d8ff_100%)] opacity-25" />
 
-      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+      <div
+        className={`mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 ${
+          SHOW_DEV_TOOLS ? "pb-36" : ""
+        }`}
+      >
         <nav className="flex items-center justify-between rounded-full border-2 border-[#151515] bg-[#fffaf0]/90 px-4 py-3 shadow-[6px_6px_0_#151515]">
           <Link href="/" className="text-lg font-black tracking-tight">
             Lookloop
@@ -184,6 +267,65 @@ export default function TryPage() {
 
         <DebugPanel garments={layered} />
       </div>
+
+      {SHOW_DEV_TOOLS && (
+        <DevToolsToolbar
+          loading={devLoading}
+          message={devMessage}
+          onClear={clearFit}
+          onLoad={loadDevTestFit}
+        />
+      )}
     </main>
+  );
+}
+
+function DevToolsToolbar({
+  loading,
+  message,
+  onClear,
+  onLoad,
+}: {
+  loading: boolean;
+  message: string | null;
+  onClear: () => void;
+  onLoad: () => void;
+}) {
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t-2 border-[#151515] bg-[#151515] px-4 py-3 text-white shadow-[0_-6px_0_#ff6bb5]">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase text-[#62d8ff]">Dev tools</p>
+          <p className="text-sm font-black">
+            One-click load the Uniqlo test fit into the layer stack.
+          </p>
+        </div>
+
+        {message && (
+          <p className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white">
+            {message}
+          </p>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onLoad}
+            disabled={loading}
+            className="min-h-11 rounded-full border-2 border-white bg-[#f6ff70] px-5 text-sm font-black text-[#151515] transition hover:-translate-y-0.5 hover:bg-[#62d8ff] disabled:translate-y-0 disabled:opacity-60"
+          >
+            {loading ? "Loading..." : "Load Uniqlo test fit"}
+          </button>
+          <button
+            type="button"
+            onClick={onClear}
+            disabled={loading}
+            className="min-h-11 rounded-full border-2 border-white px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white hover:text-[#151515] disabled:translate-y-0 disabled:opacity-60"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
