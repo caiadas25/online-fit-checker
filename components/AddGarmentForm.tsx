@@ -149,8 +149,8 @@ export default function AddGarmentForm({ onAdd, garments }: Props) {
             className={`relative flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-3 text-center transition ${cardStyle(c.type)}`}
           >
             {(counts[c.type] ?? 0) > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-gray-800 px-1 text-[10px] font-bold text-white">
-                {counts[c.type]}
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-gray-800 text-[9px] text-white">
+                ✓
               </span>
             )}
             <span className="text-2xl leading-none">{c.icon}</span>
@@ -182,8 +182,8 @@ export default function AddGarmentForm({ onAdd, garments }: Props) {
               className={`relative flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-2.5 text-center transition ${cardStyle(c.type, true)}`}
             >
               {(counts[c.type] ?? 0) > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gray-800 px-1 text-[9px] font-bold text-white">
-                  {counts[c.type]}
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-gray-800 text-[9px] text-white">
+                  ✓
                 </span>
               )}
               <span className="text-lg leading-none">{c.icon}</span>
