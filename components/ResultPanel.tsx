@@ -28,8 +28,8 @@ function UsageNote({ usage }: { usage: Usage }) {
     ? `~${usage.totalTokens.toLocaleString()} tokens`
     : null;
   return (
-    <div className="w-full max-w-md rounded-lg bg-gray-50 px-4 py-3 text-center text-xs text-gray-500">
-      <p className="font-medium text-gray-700">
+    <div className="w-full max-w-md rounded-2xl border-2 border-[#151515] bg-[#f6ff70] px-4 py-3 text-center text-xs font-bold text-[#39352f]">
+      <p className="font-black text-[#151515]">
         {usage.modelLabel} · {usage.requests} image request{usage.requests === 1 ? "" : "s"}
         {usage.mocked ? " (mock mode, no real call made)" : ""}
         {tokenLabel ? ` · ${tokenLabel}` : ""}
@@ -47,17 +47,22 @@ function UsageNote({ usage }: { usage: Usage }) {
 
 export default function ResultPanel({ image, usage, loading, error, hasGarments }: Props) {
   return (
-    <div className="flex min-h-[28rem] flex-col items-center justify-center rounded-2xl border border-black/10 bg-gradient-to-b from-gray-50 to-white p-6">
+    <section className="relative flex min-h-[38rem] flex-col items-center justify-center rounded-[2rem] border-2 border-[#151515] bg-[#fffaf0] p-4 shadow-[10px_10px_0_#151515] sm:p-6">
+      <div className="absolute left-5 top-5 rounded-full border-2 border-[#151515] bg-[#62d8ff] px-3 py-1 text-xs font-black uppercase">
+        Fit preview
+      </div>
       {loading ? (
-        <div className="flex flex-col items-center gap-3 text-gray-500">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
-          <p className="text-sm">Dressing the model… this can take up to a minute.</p>
+        <div className="flex flex-col items-center gap-4 text-center text-[#39352f]">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#f6ff70] border-t-[#151515]" />
+          <p className="max-w-xs text-sm font-black">
+            Dressing the model... this can take up to a minute.
+          </p>
         </div>
       ) : error ? (
         error.startsWith("BILLING_REQUIRED:") ? (
-          <div className="max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-5 text-center">
-            <p className="text-sm font-semibold text-amber-900">Out of OpenRouter credits</p>
-            <p className="mt-2 text-xs leading-relaxed text-amber-800">
+          <div className="max-w-sm rounded-2xl border-2 border-[#151515] bg-[#f6ff70] p-5 text-center shadow-[5px_5px_0_#151515]">
+            <p className="text-sm font-black text-[#151515]">Out of OpenRouter credits</p>
+            <p className="mt-2 text-xs font-bold leading-relaxed text-[#39352f]">
               This generation was rejected because your OpenRouter balance can&apos;t cover the
               selected model. Top up your credits (or pick a cheaper model) and try again.
             </p>
@@ -65,13 +70,15 @@ export default function ResultPanel({ image, usage, loading, error, hasGarments 
               href="https://openrouter.ai/credits"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-block rounded-lg bg-amber-900 px-4 py-2 text-xs font-medium text-white hover:bg-amber-800"
+              className="mt-3 inline-block rounded-full border-2 border-[#151515] bg-[#151515] px-4 py-2 text-xs font-black text-white hover:bg-[#ff6bb5] hover:text-[#151515]"
             >
               Manage OpenRouter credits
             </a>
           </div>
         ) : (
-          <p className="max-w-sm text-center text-sm text-red-600">{error}</p>
+          <p className="max-w-sm rounded-2xl border-2 border-[#151515] bg-[#ff6bb5] p-4 text-center text-sm font-black text-[#151515] shadow-[5px_5px_0_#151515]">
+            {error}
+          </p>
         )
       ) : image ? (
         <div className="flex w-full flex-col items-center gap-4">
@@ -79,23 +86,29 @@ export default function ResultPanel({ image, usage, loading, error, hasGarments 
           <img
             src={image}
             alt="Outfit on model"
-            className="max-h-[32rem] rounded-xl border border-black/5 object-contain shadow"
+            className="max-h-[36rem] rounded-[1.4rem] border-2 border-[#151515] bg-white object-contain shadow-[6px_6px_0_#151515]"
           />
           <button
             onClick={() => download(image)}
-            className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-full border-2 border-[#151515] bg-[#151515] px-5 py-2 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#62d8ff] hover:text-[#151515]"
           >
             Download image
           </button>
           {usage && <UsageNote usage={usage} />}
         </div>
       ) : (
-        <p className="max-w-xs text-center text-sm text-gray-400">
-          {hasGarments
-            ? 'Click "Generate outfit" to see your items on the model.'
-            : "Add some clothing items to get started."}
-        </p>
+        <div className="w-full max-w-md rounded-[1.5rem] border-2 border-dashed border-[#151515] bg-white/80 px-6 py-12 text-center">
+          <p className="text-5xl font-black leading-none">?</p>
+          <p className="mt-4 text-lg font-black text-[#151515]">
+            {hasGarments ? "Ready for the reveal." : "No fit yet."}
+          </p>
+          <p className="mt-2 text-sm font-bold leading-6 text-[#746f67]">
+            {hasGarments
+              ? 'Click "Generate fit" to see your items on the model.'
+              : "Add clothing items to start building the preview."}
+          </p>
+        </div>
       )}
-    </div>
+    </section>
   );
 }

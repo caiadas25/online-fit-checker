@@ -45,22 +45,22 @@ export default function DebugPanel({ garments }: Props) {
   const prompt = buildOutfitPrompt(layered);
 
   return (
-    <div className="mt-12 rounded-xl border border-dashed border-orange-300 bg-orange-50/50 p-4">
-      <h2 className="mb-1 text-sm font-semibold text-orange-800">
-        Debug — images fed to the model
+    <section className="mt-12 rounded-[1.6rem] border-2 border-dashed border-[#151515] bg-[#fffaf0]/90 p-4 shadow-[7px_7px_0_#151515]">
+      <h2 className="mb-1 text-sm font-black text-[#151515]">
+        Debug: images fed to the model
       </h2>
-      <p className="mb-4 text-xs text-orange-600">
+      <p className="mb-4 text-xs font-bold leading-5 text-[#746f67]">
         These are the exact images sent in the API request, in layer order
-        (innermost → outermost). The mannequin is AI-generated server-side and
+        (innermost to outermost). The mannequin is AI-generated server-side and
         has no preview here.
       </p>
 
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="flex flex-col items-center gap-1">
-          <div className="flex h-40 w-32 items-center justify-center rounded-lg border border-orange-200 bg-white text-xs text-gray-400">
+          <div className="flex h-40 w-32 items-center justify-center rounded-2xl border-2 border-[#151515] bg-[#62d8ff] text-center text-xs font-black text-[#151515]">
             🧍 AI mannequin
           </div>
-          <span className="text-[10px] text-orange-500">base (no image sent)</span>
+          <span className="text-[10px] font-black text-[#746f67]">base (no image sent)</span>
         </div>
 
         {layered.map((g, i) => (
@@ -68,14 +68,14 @@ export default function DebugPanel({ garments }: Props) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={g.imageUrl}
-              alt={`${g.label} — image ${i + 1}`}
-              className="h-40 w-32 rounded-lg border border-orange-200 object-cover"
+              alt={`${g.label} image ${i + 1}`}
+              className="h-40 w-32 rounded-2xl border-2 border-[#151515] object-cover"
             />
-            <span className="max-w-[8rem] truncate text-center text-[10px] text-orange-600">
+            <span className="max-w-[8rem] truncate text-center text-[10px] font-black text-[#151515]">
               image {i + 1}: {g.type}
             </span>
             <span
-              className="max-w-[8rem] truncate text-center text-[10px] text-gray-400"
+              className="max-w-[8rem] truncate text-center text-[10px] font-bold text-[#746f67]"
               title={g.label}
             >
               {g.label}
@@ -84,15 +84,15 @@ export default function DebugPanel({ garments }: Props) {
         ))}
       </div>
 
-      <h2 className="mb-1 text-sm font-semibold text-orange-800">
-        Debug — text prompt sent to the model
+      <h2 className="mb-1 text-sm font-black text-[#151515]">
+        Debug: text prompt sent to the model
       </h2>
-      <p className="mb-2 text-xs text-orange-600">
+      <p className="mb-2 text-xs font-bold text-[#746f67]">
         This is the exact text content accompanying the images in the API request.
       </p>
-      <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-orange-200 bg-white p-3 text-[11px] leading-relaxed text-gray-700">
+      <pre className="overflow-x-auto whitespace-pre-wrap rounded-2xl border-2 border-[#151515] bg-white p-3 text-[11px] font-bold leading-relaxed text-[#39352f]">
         {prompt}
       </pre>
-    </div>
+    </section>
   );
 }
