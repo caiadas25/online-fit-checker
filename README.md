@@ -1,4 +1,4 @@
-# Online Fit Checker
+# Lookloop
 
 Paste links to clothing from online stores (or upload images) and see the whole
 outfit composited onto a single model — so you can judge how items look layered

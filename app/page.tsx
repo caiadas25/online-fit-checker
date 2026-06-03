@@ -75,7 +75,7 @@ export default function Home() {
   return (
     <main className="mx-auto min-h-screen max-w-6xl px-4 py-8 text-gray-900">
       <header className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">Online Fit Checker</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Lookloop</h1>
         <p className="mt-1 text-sm text-gray-500">
           Add clothing from store links or uploads, then see the whole outfit on one model.
         </p>

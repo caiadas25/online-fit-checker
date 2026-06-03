@@ -235,7 +235,7 @@ export async function composeOutfit(
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "X-Title": "Online Fit Checker",
+      "X-Title": "Lookloop",
     },
     body: JSON.stringify({
       model: modelCfg.id,

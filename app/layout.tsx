@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Online Fit Checker",
+  title: "Lookloop",
   description: "Visualize a full outfit from store links on one model.",
 };
 
