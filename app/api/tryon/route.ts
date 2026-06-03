@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { composeOutfit, MODEL_KEYS } from "@/lib/imagegen";
+import {
+  DEFAULT_GENERATION_MODE,
+  GENERATION_MODES,
+  type GenerationMode,
+} from "@/lib/generation-modes";
 import { GARMENT_TYPES, sortByLayer } from "@/lib/garments";
 
 export const runtime = "nodejs";
-export const maxDuration = 120; // iterative image edits can take a while
+export const maxDuration = 300; // preprocessed mode can make one image call per garment
 
 const garmentSchema = z.object({
   imageUrl: z.string().min(1),
@@ -15,6 +20,9 @@ const garmentSchema = z.object({
 const schema = z.object({
   baseModel: z.string().min(1),
   model: z.enum(MODEL_KEYS as [string, ...string[]]).default("gemini"),
+  generationMode: z
+    .enum(GENERATION_MODES as unknown as [string, ...string[]])
+    .default(DEFAULT_GENERATION_MODE),
   garments: z.array(garmentSchema).min(1).max(8),
 });
 
@@ -39,6 +47,7 @@ export async function POST(req: Request) {
       parsed.data.baseModel,
       ordered,
       parsed.data.model as (typeof MODEL_KEYS)[number],
+      parsed.data.generationMode as GenerationMode,
     );
     return NextResponse.json(result);
   } catch (err) {

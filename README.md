@@ -42,9 +42,8 @@ npm run dev                  # http://localhost:3000
 
 - Get an OpenRouter API key at https://openrouter.ai/keys and add credits at
   https://openrouter.ai/credits.
-- Leave `MOCK_TRYON=1` (or omit the key) to develop against a bundled sample
-  composite without spending credits. Set `MOCK_TRYON=0` with a real key for
-  actual try-on.
+- `OPENROUTER_API_KEY` is required in every environment. Local changes to
+  `.env.local` require restarting `npm run dev`.
 
 ## Architecture
 
@@ -52,7 +51,7 @@ npm run dev                  # http://localhost:3000
 - `app/api/extract` — scrapes a product image from a store URL (SSRF-guarded).
 - `app/api/tryon` — iterative composition into one outfit image, with a `model` param.
 - `lib/scrape.ts` — HTML → product image/title extraction.
-- `lib/imagegen.ts` — `composeOutfit()`, the per-garment OpenRouter edit loop (+ mock mode).
+- `lib/imagegen.ts` — `composeOutfit()`, the OpenRouter image generation pipeline.
 - `lib/model-options.ts` — client-safe model keys/labels shared by UI and server.
 - `lib/garments.ts` — garment types and `sortByLayer()` layering logic.
 
@@ -67,5 +66,5 @@ npm run dev                  # http://localhost:3000
 
 ## Deploy
 
-Deploys to [Vercel](https://vercel.com). Set `OPENROUTER_API_KEY` (and `MOCK_TRYON=0`)
-as project environment variables. The API routes run on the Node.js runtime.
+Deploys to [Vercel](https://vercel.com). Set `OPENROUTER_API_KEY` as a project
+environment variable. The API routes run on the Node.js runtime.

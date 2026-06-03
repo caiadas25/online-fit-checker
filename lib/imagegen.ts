@@ -1,9 +1,18 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  DEFAULT_GENERATION_MODE,
+  GENERATION_MODE_LABELS,
+  type GenerationMode,
+} from "./generation-modes";
 import type { GarmentType } from "./garments";
 import { IMAGE_GENERATION_SYSTEM_PROMPT } from "./image-prompts";
 import { MODEL_KEYS, MODEL_LABELS, type ModelKey } from "./model-options";
-import { buildOutfitPrompt } from "./outfit-prompt";
+import {
+  buildCutoutCompositionPrompt,
+  buildGarmentCutoutPrompt,
+  buildOutfitPrompt,
+} from "./outfit-prompt";
 
 export { MODEL_KEYS, type ModelKey };
 
@@ -16,6 +25,15 @@ const OPENROUTER_MODELS: Record<ModelKey, { id: string; modalities: string[] }> 
   gemini: { id: "google/gemini-2.5-flash-image", modalities: ["image", "text"] },
   gpt: { id: "openai/gpt-5-image", modalities: ["image", "text"] },
   seedream: { id: "bytedance-seed/seedream-4.5", modalities: ["image"] },
+};
+
+type OpenRouterModelConfig = (typeof OPENROUTER_MODELS)[ModelKey];
+type ImageContent = { type: string; text?: string; image_url?: { url: string } };
+type ImageUsage = { totalTokens: number; costUsd: number | null };
+type GeneratedGarmentCutout = {
+  type: GarmentType;
+  label: string;
+  image: string;
 };
 
 export interface ImageInput {
@@ -41,13 +59,10 @@ export interface OutfitResult {
     /** Which model produced the result. */
     model: ModelKey;
     modelLabel: string;
-    /** True when produced by mock mode rather than a real API call. */
-    mocked: boolean;
+    generationMode: GenerationMode;
+    generationModeLabel: string;
   };
-}
-
-function isMock(): boolean {
-  return process.env.MOCK_TRYON === "1" || !process.env.OPENROUTER_API_KEY;
+  preprocessedGarments?: GeneratedGarmentCutout[];
 }
 
 /** Load an image (data URL, http(s) URL, or bundled public/ path) into inline base64. */
@@ -93,6 +108,13 @@ function guessMime(src: string): string {
 
 function toDataUrl(img: ImageInput): string {
   return `data:${img.mimeType};base64,${img.data}`;
+}
+
+function addUsage(a: ImageUsage, b: ImageUsage): ImageUsage {
+  return {
+    totalTokens: a.totalTokens + b.totalTokens,
+    costUsd: a.costUsd == null || b.costUsd == null ? null : a.costUsd + b.costUsd,
+  };
 }
 
 function isImageUrl(url: unknown): url is string {
@@ -152,44 +174,12 @@ function translateError(status: number, body: string): Error {
   return new Error(`The image model failed (${status}): ${body.slice(0, 200)}`);
 }
 
-/**
- * Compose the whole outfit in a SINGLE request: the model receives every garment
- * image at once (plus an optional base photo) and renders one full-body figure
- * wearing all of them. This avoids the drift/cropping/lost-layers problems of
- * editing one garment at a time. Garments are pre-sorted innermost→outermost.
- */
-export async function composeOutfit(
-  baseModelSrc: string,
-  garments: OutfitGarment[],
-  modelKey: ModelKey,
-): Promise<OutfitResult> {
-  const modelCfg = OPENROUTER_MODELS[modelKey] ?? OPENROUTER_MODELS.gemini;
-  const modelLabel = MODEL_LABELS[modelKey] ?? MODEL_LABELS.gemini;
-
-  if (isMock()) {
-    return {
-      image: toDataUrl(await loadImage("/sample-composite.svg")),
-      usage: { requests: 1, totalTokens: 0, costUsd: 0, model: modelKey, modelLabel, mocked: true },
-    };
-  }
-
-  const apiKey = process.env.OPENROUTER_API_KEY!;
-  // A real uploaded/linked photo is an image source; the "mannequin" sentinel is not.
-  const hasBaseImage = /^(data:|https?:|\/)/.test(baseModelSrc);
-
-  // Load all images up front (base first, then garments in layer order).
-  const garmentImgs = await Promise.all(garments.map((g) => loadImage(g.imageUrl)));
-
-  const content: { type: string; text?: string; image_url?: { url: string } }[] = [
-    { type: "text", text: buildOutfitPrompt(garments, hasBaseImage) },
-  ];
-  if (hasBaseImage) {
-    content.push({ type: "image_url", image_url: { url: toDataUrl(await loadImage(baseModelSrc)) } });
-  }
-  for (const img of garmentImgs) {
-    content.push({ type: "image_url", image_url: { url: toDataUrl(img) } });
-  }
-
+async function generateImage(
+  apiKey: string,
+  modelCfg: OpenRouterModelConfig,
+  modelLabel: string,
+  content: ImageContent[],
+): Promise<{ image: string; usage: ImageUsage }> {
   const res = await fetch(OPENROUTER_URL, {
     method: "POST",
     headers: {
@@ -222,18 +212,167 @@ export async function composeOutfit(
         (said ? ` Model said: "${said.slice(0, 240)}"` : " Try a different model or regenerate."),
     );
   }
-  // Normalize to a self-contained data URL (so it downloads reliably).
-  const image = next.startsWith("data:") ? next : toDataUrl(await loadImage(next));
 
   return {
-    image,
+    image: next.startsWith("data:") ? next : toDataUrl(await loadImage(next)),
     usage: {
-      requests: 1,
       totalTokens: usage?.total_tokens ?? 0,
       costUsd: typeof usage?.cost === "number" ? usage.cost : null,
+    },
+  };
+}
+
+async function composeSinglePass(
+  apiKey: string,
+  modelCfg: OpenRouterModelConfig,
+  modelLabel: string,
+  baseModelSrc: string,
+  garments: OutfitGarment[],
+  hasBaseImage: boolean,
+): Promise<{ image: string; usage: ImageUsage }> {
+  const garmentImgs = await Promise.all(garments.map((g) => loadImage(g.imageUrl)));
+  const content: ImageContent[] = [
+    { type: "text", text: buildOutfitPrompt(garments, hasBaseImage) },
+  ];
+
+  if (hasBaseImage) {
+    content.push({ type: "image_url", image_url: { url: toDataUrl(await loadImage(baseModelSrc)) } });
+  }
+  for (const img of garmentImgs) {
+    content.push({ type: "image_url", image_url: { url: toDataUrl(img) } });
+  }
+
+  return generateImage(apiKey, modelCfg, modelLabel, content);
+}
+
+async function preprocessGarment(
+  apiKey: string,
+  modelCfg: OpenRouterModelConfig,
+  modelLabel: string,
+  garment: OutfitGarment,
+): Promise<{ image: string; usage: ImageUsage }> {
+  const img = await loadImage(garment.imageUrl);
+  return generateImage(apiKey, modelCfg, modelLabel, [
+    { type: "text", text: buildGarmentCutoutPrompt(garment) },
+    { type: "image_url", image_url: { url: toDataUrl(img) } },
+  ]);
+}
+
+async function composePreprocessed(
+  apiKey: string,
+  modelCfg: OpenRouterModelConfig,
+  modelLabel: string,
+  baseModelSrc: string,
+  garments: OutfitGarment[],
+  hasBaseImage: boolean,
+): Promise<{
+  image: string;
+  usage: ImageUsage;
+  preprocessedGarments: GeneratedGarmentCutout[];
+}> {
+  let usage: ImageUsage = { totalTokens: 0, costUsd: 0 };
+  const preprocessedGarments = [];
+
+  for (const garment of garments) {
+    const cutout = await preprocessGarment(apiKey, modelCfg, modelLabel, garment);
+    usage = addUsage(usage, cutout.usage);
+    preprocessedGarments.push({
+      type: garment.type,
+      label: garment.label,
+      image: cutout.image,
+    });
+  }
+
+  const content: ImageContent[] = [
+    { type: "text", text: buildCutoutCompositionPrompt(garments, hasBaseImage) },
+  ];
+  if (hasBaseImage) {
+    content.push({ type: "image_url", image_url: { url: toDataUrl(await loadImage(baseModelSrc)) } });
+  }
+  for (const garment of preprocessedGarments) {
+    content.push({ type: "image_url", image_url: { url: garment.image } });
+  }
+
+  const final = await generateImage(apiKey, modelCfg, modelLabel, content);
+
+  return {
+    image: final.image,
+    usage: addUsage(usage, final.usage),
+    preprocessedGarments,
+  };
+}
+
+/**
+ * Compose the whole outfit in a SINGLE request: the model receives every garment
+ * image at once (plus an optional base photo) and renders one full-body figure
+ * wearing all of them. This avoids the drift/cropping/lost-layers problems of
+ * editing one garment at a time. Garments are pre-sorted innermost→outermost.
+ */
+export async function composeOutfit(
+  baseModelSrc: string,
+  garments: OutfitGarment[],
+  modelKey: ModelKey,
+  generationMode: GenerationMode = DEFAULT_GENERATION_MODE,
+): Promise<OutfitResult> {
+  const modelCfg = OPENROUTER_MODELS[modelKey] ?? OPENROUTER_MODELS.gemini;
+  const modelLabel = MODEL_LABELS[modelKey] ?? MODEL_LABELS.gemini;
+  const generationModeLabel = GENERATION_MODE_LABELS[generationMode];
+  const requests = generationMode === "preprocessed" ? garments.length + 1 : 1;
+
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error(
+      "OPENROUTER_API_KEY is required for image generation. Add it to .env.local and restart the dev server.",
+    );
+  }
+
+  // A real uploaded/linked photo is an image source; the "mannequin" sentinel is not.
+  const hasBaseImage = /^(data:|https?:|\/)/.test(baseModelSrc);
+
+  if (generationMode === "preprocessed") {
+    const result = await composePreprocessed(
+      apiKey,
+      modelCfg,
+      modelLabel,
+      baseModelSrc,
+      garments,
+      hasBaseImage,
+    );
+
+    return {
+      image: result.image,
+      preprocessedGarments: result.preprocessedGarments,
+      usage: {
+        requests,
+        totalTokens: result.usage.totalTokens,
+        costUsd: result.usage.costUsd,
+        model: modelKey,
+        modelLabel,
+        generationMode,
+        generationModeLabel,
+      },
+    };
+  }
+
+  const result = await composeSinglePass(
+    apiKey,
+    modelCfg,
+    modelLabel,
+    baseModelSrc,
+    garments,
+    hasBaseImage,
+  );
+
+  return {
+    image: result.image,
+    usage: {
+      requests,
+      totalTokens: result.usage.totalTokens,
+      costUsd: result.usage.costUsd,
       model: modelKey,
       modelLabel,
-      mocked: false,
+      generationMode,
+      generationModeLabel,
     },
   };
 }

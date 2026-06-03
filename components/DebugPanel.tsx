@@ -1,18 +1,28 @@
 "use client";
 
 import { sortByLayer, type Garment } from "@/lib/garments";
+import type { GenerationMode } from "@/lib/generation-modes";
 import { IMAGE_GENERATION_SYSTEM_PROMPT } from "@/lib/image-prompts";
-import { buildOutfitPrompt } from "@/lib/outfit-prompt";
+import { buildCutoutCompositionPrompt, buildOutfitPrompt } from "@/lib/outfit-prompt";
 
 interface Props {
   garments: Garment[];
+  generationMode: GenerationMode;
+  preprocessedGarments: { type: Garment["type"]; label: string; image: string }[];
 }
 
-export default function DebugPanel({ garments }: Props) {
+export default function DebugPanel({
+  garments,
+  generationMode,
+  preprocessedGarments,
+}: Props) {
   if (garments.length === 0) return null;
 
   const layered = sortByLayer(garments);
-  const prompt = buildOutfitPrompt(layered, false);
+  const prompt =
+    generationMode === "preprocessed"
+      ? buildCutoutCompositionPrompt(layered, false)
+      : buildOutfitPrompt(layered, false);
 
   return (
     <section className="mt-12 rounded-[1.6rem] border-2 border-dashed border-[#151515] bg-[#fffaf0]/90 p-4 shadow-[7px_7px_0_#151515]">
@@ -53,6 +63,39 @@ export default function DebugPanel({ garments }: Props) {
           </div>
         ))}
       </div>
+
+      {preprocessedGarments.length > 0 && (
+        <>
+          <h2 className="mb-1 text-sm font-black text-[#151515]">
+            Debug: preprocessed garment cutouts
+          </h2>
+          <p className="mb-4 text-xs font-bold leading-5 text-[#746f67]">
+            These are the intermediate garment-only images used for final composition in
+            preprocessed mode.
+          </p>
+          <div className="mb-6 flex flex-wrap gap-4">
+            {preprocessedGarments.map((g, i) => (
+              <div key={`${g.type}-${i}`} className="flex flex-col items-center gap-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={g.image}
+                  alt={`${g.label} cutout`}
+                  className="h-40 w-32 rounded-2xl border-2 border-[#151515] bg-white object-contain"
+                />
+                <span className="max-w-[8rem] truncate text-center text-[10px] font-black text-[#151515]">
+                  cutout {i + 1}: {g.type}
+                </span>
+                <span
+                  className="max-w-[8rem] truncate text-center text-[10px] font-bold text-[#746f67]"
+                  title={g.label}
+                >
+                  {g.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <h2 className="mb-1 text-sm font-black text-[#151515]">
         Debug: system prompt sent to the model

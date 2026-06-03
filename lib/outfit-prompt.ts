@@ -83,3 +83,45 @@ export function buildOutfitPrompt(
     "Output only the final composed image.",
   ].join("\n\n");
 }
+
+export function buildGarmentCutoutPrompt(garment: PromptGarment): string {
+  return [
+    `Extract only this target garment: ${ARTICLE[garment.type]}.`,
+    `Target product label: "${garment.label}". Use this label to identify the intended item when the source model is wearing multiple garments.`,
+    CATEGORY_BOUNDARY[garment.type],
+    "Create a clean product cutout of the target garment only, front-facing as much as the source allows, preserving its exact color, fabric, cut, silhouette, length, stitching, buttons, seams, trims, patterns, embroidery, patches, and garment-native logos or lettering.",
+    "Remove the model body, face, hair, hands, legs, all non-target garments, shoes, bags, jewelry, styling items, background, shadows, UI, price tags, captions, size/height labels, measurement overlays, signatures, watermarks, and page text.",
+    "Do not include any readable text unless it is physically printed, embroidered, patched, woven, or attached to the target garment.",
+    "Place the isolated target garment centered on a plain white or transparent background. Output only the garment cutout image.",
+  ].join("\n\n");
+}
+
+export function buildCutoutCompositionPrompt(
+  garments: PromptGarment[],
+  hasBaseImage: boolean,
+): string {
+  const offset = hasBaseImage ? 2 : 1;
+
+  const subject = hasBaseImage
+    ? "The first image shows the target person. Keep their exact face, body, hair, and skin, on a plain light-gray studio background."
+    : "Generate one neutral, faceless, light-gray full-body mannequin standing front-facing on a seamless light-gray studio background. The mannequin should be slim, average height, with no facial features.";
+
+  const garmentList = garments.map(
+    (g, i) =>
+      `Image ${i + offset}: ${ARTICLE[g.type]} from "${g.label}". Use this entire isolated garment and no other clothing.`,
+  );
+
+  return [
+    subject,
+    `You are given ${garments.length + (hasBaseImage ? 1 : 0)} image(s). Images ${imageList(garments.length, offset)} are isolated garment cutouts that were already cleaned from their original product photos.`,
+    "GARMENT CUTOUTS:",
+    ...garmentList,
+    "Compose the garment cutouts onto the mannequin as one outfit, layered from innermost to outermost in the listed order.",
+    "Layering rules: shirts/tops go under jackets; jackets and outerwear must be visible as the outermost upper-body layer with sleeves, front panels, lapels/collar, buttons, pockets, and hem present; bottoms sit at the waist; ties go over shirts and under jackets.",
+    "Completeness rule: every provided cutout must appear in the final outfit. Do not omit the jacket/outerwear, even if another top is already present.",
+    "Exact-match rule: preserve each cutout garment's color, fabric texture, cut, length, collar/sleeve style, stitching, trims, patterns, and garment-native logos or lettering when present.",
+    "Zero-typography rule: the final canvas must contain no readable words, numbers, labels, captions, size/height annotations, signatures, UI text, price tags, watermarks, or product-page graphics anywhere in the background, margins, corners, or floor. Text or logos are allowed only when physically attached to a target garment.",
+    "Show the entire figure from head to feet, centred, full-length, on a clean seamless light-gray studio background. Do not crop or zoom in.",
+    "Output only the final composed image.",
+  ].join("\n\n");
+}

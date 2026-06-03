@@ -5,7 +5,7 @@ interface Usage {
   totalTokens: number;
   costUsd: number | null;
   modelLabel: string;
-  mocked: boolean;
+  generationModeLabel?: string;
 }
 
 interface Props {
@@ -31,15 +31,13 @@ function UsageNote({ usage }: { usage: Usage }) {
     <div className="w-full max-w-md rounded-2xl border-2 border-[#151515] bg-[#f6ff70] px-4 py-3 text-center text-xs font-bold text-[#39352f]">
       <p className="font-black text-[#151515]">
         {usage.modelLabel} · {usage.requests} image request{usage.requests === 1 ? "" : "s"}
-        {usage.mocked ? " (mock mode, no real call made)" : ""}
+        {usage.generationModeLabel ? ` · ${usage.generationModeLabel}` : ""}
         {tokenLabel ? ` · ${tokenLabel}` : ""}
       </p>
       <p className="mt-1">
-        {usage.mocked
-          ? "Mock mode makes no real API calls and costs nothing."
-          : usage.costUsd != null
-            ? `Billed to your OpenRouter credits: about $${usage.costUsd.toFixed(4)} this generation.`
-            : "Billed to your OpenRouter credits for the selected model."}
+        {usage.costUsd != null
+          ? `Billed to your OpenRouter credits: about $${usage.costUsd.toFixed(4)} this generation.`
+          : "Billed to your OpenRouter credits for the selected model."}
       </p>
     </div>
   );
