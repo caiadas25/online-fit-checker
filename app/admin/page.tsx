@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 
 interface Entry {
   email: string;
@@ -8,26 +9,121 @@ interface Entry {
 }
 
 export default function AdminPage() {
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+  const [password, setPassword] = useState("");
   const [count, setCount] = useState<number | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const loadWaitlist = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/waitlist/admin");
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Failed to load waitlist.");
+      setCount(data.count);
+      setEntries(data.entries);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load waitlist.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    fetch("/api/waitlist/admin")
+    fetch("/api/admin/session")
       .then((r) => r.json())
       .then((data) => {
-        if (data.error) throw new Error(data.error);
-        setCount(data.count);
-        setEntries(data.entries);
+        const isAuthenticated = Boolean(data.authenticated);
+        setAuthenticated(isAuthenticated);
+        if (isAuthenticated) void loadWaitlist();
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch(() => setAuthenticated(false));
+  }, [loadWaitlist]);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Login failed.");
+      setPassword("");
+      setAuthenticated(true);
+      await loadWaitlist();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed.");
+      setAuthenticated(false);
+      setLoading(false);
+    }
+  }
+
+  async function handleLogout() {
+    await fetch("/api/admin/logout", { method: "POST" });
+    setAuthenticated(false);
+    setCount(null);
+    setEntries([]);
+  }
+
+  if (authenticated === null) {
+    return (
+      <main className="mx-auto max-w-2xl px-4 py-12">
+        <p className="text-sm text-gray-500">Checking session...</p>
+      </main>
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4 py-12">
+        <h1 className="text-2xl font-bold text-gray-900">Admin sign in</h1>
+        <form onSubmit={handleLogin} className="mt-6 space-y-4">
+          <label className="block text-sm font-medium text-gray-700" htmlFor="password">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-11 w-full rounded-lg border border-black/15 px-3 text-sm text-gray-900 outline-none focus:border-gray-900"
+            required
+          />
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="h-11 w-full rounded-lg bg-gray-900 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="text-2xl font-bold text-gray-900">FitMashr Waitlist</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">FitMashr Waitlist</h1>
+        <div className="flex items-center gap-3">
+          <Link href="/try" className="text-sm font-semibold text-gray-900 underline">
+            Open try-on
+          </Link>
+          <button type="button" onClick={handleLogout} className="text-sm text-gray-500">
+            Log out
+          </button>
+        </div>
+      </div>
 
       {loading && <p className="mt-4 text-sm text-gray-500">Loading…</p>}
       {error && <p className="mt-4 text-sm text-red-500">{error}</p>}

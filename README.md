@@ -44,6 +44,8 @@ npm run dev                  # http://localhost:3000
   https://openrouter.ai/credits.
 - `OPENROUTER_API_KEY` is required in every environment. Local changes to
   `.env.local` require restarting `npm run dev`.
+- Set `ADMIN_PASSWORD` and a long random `ADMIN_AUTH_SECRET` to enable the admin
+  session used for `/admin`, `/try`, and the generation APIs.
 
 ## Architecture
 

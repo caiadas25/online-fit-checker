@@ -83,10 +83,10 @@ export default function Home() {
             ))}
           </div>
           <Link
-            href="/try"
+            href="#waitlist"
             className="rounded-full border-2 border-[#151515] bg-[#151515] px-4 py-2 text-sm font-black text-white transition hover:-translate-y-0.5 hover:shadow-[3px_3px_0_#ff6bb5]"
           >
-            Try it
+            Join waitlist
           </Link>
         </nav>
 
@@ -104,6 +104,7 @@ export default function Home() {
             </p>
 
             <form
+              id="waitlist"
               onSubmit={handleSubmit}
               className="mt-8 max-w-2xl rounded-[2rem] border-2 border-[#151515] bg-white p-2 shadow-[8px_8px_0_#151515]"
             >
@@ -144,10 +145,10 @@ export default function Home() {
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
-                href="/try"
+                href="#waitlist"
                 className="inline-flex min-h-12 items-center justify-center rounded-full border-2 border-[#151515] bg-[#151515] px-6 text-sm font-black text-white shadow-[4px_4px_0_#62d8ff] transition hover:-translate-y-0.5"
               >
-                Build a fit
+                Join waitlist
               </Link>
               <p className="text-sm font-bold text-[#514c44]">
                 No spam. One invite when FitMashr is ready to cook.
@@ -197,10 +198,10 @@ export default function Home() {
               half screenshots, and one outfit idea that needs receipts.
             </p>
             <Link
-              href="/try"
+              href="#waitlist"
               className="mt-6 inline-flex min-h-12 items-center justify-center rounded-full border-2 border-[#151515] bg-[#151515] px-6 text-sm font-black text-white shadow-[4px_4px_0_#ff6bb5] transition hover:-translate-y-0.5"
             >
-              Try the flow
+              Join waitlist
             </Link>
           </div>
 

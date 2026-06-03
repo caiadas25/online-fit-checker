@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAdminCookieHeaderAuthenticated } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
@@ -10,7 +11,11 @@ async function getKv() {
   return kv;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  if (!(await isAdminCookieHeaderAuthenticated(req.headers.get("cookie")))) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
   const kv = await getKv();
   if (!kv) {
     return NextResponse.json({ error: "KV not configured." }, { status: 503 });
