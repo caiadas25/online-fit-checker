@@ -9,6 +9,7 @@ import {
   DEFAULT_GENERATION_MODE,
   GENERATION_MODES,
   GENERATION_MODE_LABELS,
+  resolveGenerationMode,
   type GenerationMode,
 } from "@/lib/generation-modes";
 import { sortByLayer, type Garment, type GarmentType } from "@/lib/garments";
@@ -96,7 +97,7 @@ export default function TryPage() {
         body: JSON.stringify({
           baseModel,
           model: selectedModel,
-          generationMode,
+          generationMode: effectiveGenerationMode,
           garments: garments.map((g) => ({
             imageUrl: g.imageUrl,
             type: g.type,
@@ -163,7 +164,9 @@ export default function TryPage() {
 
   // Preview the order garments will actually be layered in.
   const layered = sortByLayer(garments);
-  const usesOuterwearCutouts = layered.some((g) => g.type === "jacket");
+  const effectiveGenerationMode = resolveGenerationMode(layered, generationMode);
+  const isGenerationModeForced = effectiveGenerationMode !== generationMode;
+  const usesOuterwearCutouts = effectiveGenerationMode === "preprocessed";
   const isTypeDisabledForGarment = (type: GarmentType, garment: Garment) =>
     !canUseType(garments, type, garment.id);
 
@@ -213,7 +216,8 @@ export default function TryPage() {
             {SHOW_DEV_TOOLS && (
               <DevToolsPanel
                 baseModel={baseModel}
-                generationMode={generationMode}
+                effectiveGenerationMode={effectiveGenerationMode}
+                isGenerationModeForced={isGenerationModeForced}
                 selectedModel={selectedModel}
                 onBaseModelChange={setBaseModel}
                 onClear={clearFit}
@@ -329,7 +333,8 @@ function readFileAsDataUrl(file: File): Promise<string> {
 
 function DevToolsPanel({
   baseModel,
-  generationMode,
+  effectiveGenerationMode,
+  isGenerationModeForced,
   selectedModel,
   onBaseModelChange,
   onClear,
@@ -341,7 +346,8 @@ function DevToolsPanel({
   message,
 }: {
   baseModel: string;
-  generationMode: GenerationMode;
+  effectiveGenerationMode: GenerationMode;
+  isGenerationModeForced: boolean;
   selectedModel: ModelKey;
   onBaseModelChange: (value: string) => void;
   onClear: () => void;
@@ -442,16 +448,23 @@ function DevToolsPanel({
                 key={mode}
                 type="button"
                 onClick={() => onGenerationModeChange(mode)}
+                disabled={isGenerationModeForced && mode === "single-pass"}
+                aria-pressed={effectiveGenerationMode === mode}
                 className={`min-h-12 rounded-2xl border-2 px-3 text-sm font-black transition ${
-                  generationMode === mode
+                  effectiveGenerationMode === mode
                     ? "border-[#151515] bg-[#ff6bb5] shadow-[3px_3px_0_#151515]"
-                    : "border-[#151515]/25 bg-white hover:border-[#151515]"
+                    : "border-[#151515]/25 bg-white hover:border-[#151515] disabled:cursor-not-allowed disabled:bg-[#d8d2c6] disabled:text-[#746f67] disabled:opacity-70"
                 }`}
               >
                 {GENERATION_MODE_LABELS[mode]}
               </button>
             ))}
           </div>
+          {isGenerationModeForced && (
+            <p className="mt-2 rounded-2xl border-2 border-[#151515]/20 bg-white/70 px-3 py-2 text-xs font-black text-[#151515]">
+              Jacket detected. Effective mode: {GENERATION_MODE_LABELS[effectiveGenerationMode]}.
+            </p>
+          )}
         </div>
 
         <div>
