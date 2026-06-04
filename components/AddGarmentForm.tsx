@@ -21,6 +21,17 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+function firstHttpUrl(value: string): string | null {
+  const match = value.match(/https?:\/\/[^\s<>"']+/i);
+  if (!match) return null;
+
+  try {
+    return new URL(match[0]).toString();
+  } catch {
+    return null;
+  }
+}
+
 /** Primary card options shown by default. */
 const PRIMARY_CARDS: { type: GarmentType; label: string; icon: string }[] = [
   { type: "top", label: "Top", icon: "👕" },
@@ -55,15 +66,16 @@ export default function AddGarmentForm({ onAdd, garments }: Props) {
 
   const counts = countByType(garments);
 
-  async function handleUrlAdd() {
-    if (!url.trim()) return;
+  async function addUrl(rawUrl: string) {
+    const nextUrl = rawUrl.trim();
+    if (!nextUrl) return;
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ url: nextUrl }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Couldn't read that page.");
@@ -72,7 +84,7 @@ export default function AddGarmentForm({ onAdd, garments }: Props) {
         type,
         label: data.title?.slice(0, 60) || "",
         imageUrl: data.imageUrl,
-        sourceUrl: url.trim(),
+        sourceUrl: nextUrl,
       });
       setUrl("");
     } catch (err) {
@@ -80,6 +92,10 @@ export default function AddGarmentForm({ onAdd, garments }: Props) {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleUrlAdd() {
+    await addUrl(url);
   }
 
   async function handleFile(file: File | undefined) {
@@ -101,6 +117,16 @@ export default function AddGarmentForm({ onAdd, garments }: Props) {
     }
   }
 
+  async function handleClipboardText(text: string) {
+    const pastedUrl = firstHttpUrl(text);
+    if (!pastedUrl) {
+      setError("Clipboard doesn't contain an image or link.");
+      return;
+    }
+    setUrl(pastedUrl);
+    await addUrl(pastedUrl);
+  }
+
   async function handlePaste(e: ClipboardEvent<HTMLElement>) {
     if (busy) return;
     const files = Array.from(e.clipboardData.files);
@@ -111,9 +137,61 @@ export default function AddGarmentForm({ onAdd, garments }: Props) {
         ?.getAsFile() ??
       undefined;
 
-    if (!file) return;
+    if (file) {
+      e.preventDefault();
+      await handleFile(file);
+      return;
+    }
+
+    const pastedUrl = firstHttpUrl(e.clipboardData.getData("text/plain"));
+    if (!pastedUrl) return;
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement
+    ) {
+      return;
+    }
     e.preventDefault();
-    await handleFile(file);
+    await handleClipboardText(pastedUrl);
+  }
+
+  async function handleClipboardAdd() {
+    if (busy) return;
+    setError(null);
+    const clipboard = navigator.clipboard;
+
+    try {
+      if (clipboard && "read" in clipboard) {
+        const items = await clipboard.read();
+        for (const item of items) {
+          const imageType = item.types.find((itemType) =>
+            itemType.startsWith("image/"),
+          );
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            await handleFile(
+              new File([blob], "clipboard-image", {
+                type: blob.type || imageType,
+              }),
+            );
+            return;
+          }
+        }
+      }
+
+      if (clipboard && "readText" in clipboard) {
+        await handleClipboardText(await clipboard.readText());
+        return;
+      }
+
+      setError("Use Cmd+V/Ctrl+V or upload an image instead.");
+    } catch (err) {
+      setError(
+        err instanceof Error && err.name === "NotAllowedError"
+          ? "Clipboard access was blocked. Use Cmd+V/Ctrl+V or upload an image instead."
+          : "Couldn't read from the clipboard.",
+      );
+    }
   }
 
   function selectType(t: GarmentType) {
@@ -211,7 +289,7 @@ export default function AddGarmentForm({ onAdd, garments }: Props) {
       )}
 
       <label className="mb-1 block text-xs font-black uppercase text-[#746f67]">
-        Paste a store or image link
+        Paste a store link, image link, or clipboard photo
       </label>
       <div className="mb-3 flex gap-2">
         <input
@@ -224,6 +302,15 @@ export default function AddGarmentForm({ onAdd, garments }: Props) {
           disabled={busy}
         />
         <button
+          type="button"
+          onClick={handleClipboardAdd}
+          disabled={busy}
+          className="shrink-0 rounded-2xl border-2 border-[#151515] bg-[#62d8ff] px-3 py-2 text-sm font-black text-[#151515] transition hover:bg-[#f6ff70] disabled:opacity-40"
+        >
+          Paste
+        </button>
+        <button
+          type="button"
           onClick={handleUrlAdd}
           disabled={busy || !url.trim()}
           className="shrink-0 rounded-2xl border-2 border-[#151515] bg-[#151515] px-4 py-2 text-sm font-black text-white transition hover:bg-[#ff6bb5] hover:text-[#151515] disabled:opacity-40"
