@@ -27,6 +27,9 @@ const CATEGORY_BOUNDARY: Record<GarmentType, string> = {
   hat: "Keep only the hat/headwear itself. Exclude hair, face, jewelry, clothing, person, and background.",
 };
 
+const JACKET_VISIBILITY_RULE =
+  "Jacket/outerwear rule: if a jacket or outerwear garment is listed, it must appear as the outermost upper-body layer with its sleeves, collar or lapels, front panels, closure, pockets, cuffs, and hem visibly present. Do not replace it with a vest, shirt, hoodie, or generic top, and do not omit it because another upper-body garment is present.";
+
 function imageList(count: number, offset: number): string {
   return Array.from({ length: count }, (_, i) => i + offset).join(", ");
 }
@@ -70,6 +73,7 @@ export function buildOutfitPrompt(
     ...extractionSteps,
     `Step ${garments.length + 2}: Compose the extracted target garments onto the mannequin as ONE outfit, layered from innermost to outermost in the order listed. Use only the extracted target garments. Do not import any extra shirt, collar, cuffs, belt, shoes, model annotation, or styling item from a reference photo unless that item is one of the listed targets.`,
     "Layering rules: tops sit on the upper body; bottoms sit at the waist; dresses replace separate top and bottom pieces; jackets and outerwear sit over tops or dresses; shoes sit on the feet; hats sit on the head.",
+    JACKET_VISIBILITY_RULE,
     "Completeness rule: every listed target garment must appear in the final outfit.",
     "Exact-match rule: match each target garment's colour, fabric texture, cut, length, collar/sleeve style, stitching, trims, patterns, and garment-native logos or lettering when present. A pink cardigan stays a pink cardigan. A beige pleated skirt/skort stays a beige pleated skirt/skort without the blue shirt from its source photo.",
     "Zero-typography rule: the final canvas must contain no readable words, numbers, labels, captions, size/height annotations, signatures, UI text, price tags, watermarks, or product-page graphics anywhere in the background, margins, corners, or floor. Text or logos are allowed only when physically printed, embroidered, patched, woven, or attached to a target garment.",
@@ -85,8 +89,8 @@ export function buildGarmentCutoutPrompt(garment: PromptGarment): string {
     `Target product label: "${garment.label}". Use this label to identify the intended item when the source model is wearing multiple garments.`,
     CATEGORY_BOUNDARY[garment.type],
     "Create a clean product cutout of the target garment only, front-facing as much as the source allows, preserving its exact color, fabric, cut, silhouette, length, stitching, buttons, seams, trims, patterns, embroidery, patches, and garment-native logos or lettering.",
-    "Remove the model body, face, hair, hands, legs, all non-target garments, shoes, bags, jewelry, styling items, background, shadows, UI, price tags, captions, size/height labels, measurement overlays, signatures, watermarks, and page text.",
-    "Do not include any readable text unless it is physically printed, embroidered, patched, woven, or attached to the target garment.",
+    "Remove the model body, face, hair, hands, legs, all non-target garments, shoes, bags, jewelry, styling items, background, shadows, UI, price tags, captions, size/height labels, lower-right height/size annotations, measurement overlays, signatures, watermarks, and every source-photo or product-page text element.",
+    "Do not include any readable words, numbers, labels, or annotation text unless it is physically printed, embroidered, patched, woven, or attached to the target garment.",
     "Place the isolated target garment centered on a plain white or transparent background. Output only the garment cutout image.",
   ].join("\n\n");
 }
@@ -113,6 +117,7 @@ export function buildCutoutCompositionPrompt(
     ...garmentList,
     "Compose the garment cutouts onto the mannequin as one outfit, layered from innermost to outermost in the listed order.",
     "Layering rules: tops sit on the upper body; bottoms sit at the waist; dresses replace separate top and bottom pieces; jackets and outerwear sit over tops or dresses; shoes sit on the feet; hats sit on the head.",
+    JACKET_VISIBILITY_RULE,
     "Completeness rule: every provided cutout must appear in the final outfit.",
     "Exact-match rule: preserve each cutout garment's color, fabric texture, cut, length, collar/sleeve style, stitching, trims, patterns, and garment-native logos or lettering when present.",
     "Zero-typography rule: the final canvas must contain no readable words, numbers, labels, captions, size/height annotations, signatures, UI text, price tags, watermarks, or product-page graphics anywhere in the background, margins, corners, or floor. Text or logos are allowed only when physically attached to a target garment.",

@@ -6,6 +6,7 @@ import {
   DEFAULT_GENERATION_MODE,
   GENERATION_MODES,
   GENERATION_MODE_LABELS,
+  resolveGenerationMode,
   type GenerationMode,
 } from "@/lib/generation-modes";
 import { GARMENT_TYPES, sortByLayer } from "@/lib/garments";
@@ -49,14 +50,16 @@ export async function POST(req: Request) {
     );
   }
 
+  const ordered = sortByLayer(parsed.data.garments);
+  const requestedGenerationMode = parsed.data.generationMode as GenerationMode;
+  const effectiveGenerationMode = resolveGenerationMode(ordered, requestedGenerationMode);
   const startedAt = Date.now();
   try {
-    const ordered = sortByLayer(parsed.data.garments);
     const result = await composeOutfit(
       parsed.data.baseModel,
       ordered,
       parsed.data.model as (typeof MODEL_KEYS)[number],
-      parsed.data.generationMode as GenerationMode,
+      requestedGenerationMode,
     );
 
     await recordUsageEvent({
@@ -76,7 +79,6 @@ export async function POST(req: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to generate the outfit.";
     const model = parsed.data.model as (typeof MODEL_KEYS)[number];
-    const generationMode = parsed.data.generationMode as GenerationMode;
 
     await recordUsageEvent({
       outcome: "error",
@@ -85,9 +87,9 @@ export async function POST(req: Request) {
       costUsd: null,
       model,
       modelLabel: MODEL_LABELS[model],
-      generationMode,
-      generationModeLabel: GENERATION_MODE_LABELS[generationMode],
-      garmentCount: parsed.data.garments.length,
+      generationMode: effectiveGenerationMode,
+      generationModeLabel: GENERATION_MODE_LABELS[effectiveGenerationMode],
+      garmentCount: ordered.length,
       durationMs: Date.now() - startedAt,
       error: message,
     }).catch(() => undefined);

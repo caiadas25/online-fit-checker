@@ -3,6 +3,7 @@ import path from "node:path";
 import {
   DEFAULT_GENERATION_MODE,
   GENERATION_MODE_LABELS,
+  resolveGenerationMode,
   type GenerationMode,
 } from "./generation-modes";
 import type { GarmentType } from "./garments";
@@ -315,10 +316,11 @@ export async function composeOutfit(
   modelKey: ModelKey,
   generationMode: GenerationMode = DEFAULT_GENERATION_MODE,
 ): Promise<OutfitResult> {
+  const effectiveGenerationMode = resolveGenerationMode(garments, generationMode);
   const modelCfg = OPENROUTER_MODELS[modelKey] ?? OPENROUTER_MODELS.gemini;
   const modelLabel = MODEL_LABELS[modelKey] ?? MODEL_LABELS.gemini;
-  const generationModeLabel = GENERATION_MODE_LABELS[generationMode];
-  const requests = generationMode === "preprocessed" ? garments.length + 1 : 1;
+  const generationModeLabel = GENERATION_MODE_LABELS[effectiveGenerationMode];
+  const requests = effectiveGenerationMode === "preprocessed" ? garments.length + 1 : 1;
 
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
@@ -330,7 +332,7 @@ export async function composeOutfit(
   // A real uploaded/linked photo is an image source; the "mannequin" sentinel is not.
   const hasBaseImage = /^(data:|https?:|\/)/.test(baseModelSrc);
 
-  if (generationMode === "preprocessed") {
+  if (effectiveGenerationMode === "preprocessed") {
     const result = await composePreprocessed(
       apiKey,
       modelCfg,
@@ -349,7 +351,7 @@ export async function composeOutfit(
         costUsd: result.usage.costUsd,
         model: modelKey,
         modelLabel,
-        generationMode,
+        generationMode: effectiveGenerationMode,
         generationModeLabel,
       },
     };
@@ -372,7 +374,7 @@ export async function composeOutfit(
       costUsd: result.usage.costUsd,
       model: modelKey,
       modelLabel,
-      generationMode,
+      generationMode: effectiveGenerationMode,
       generationModeLabel,
     },
   };

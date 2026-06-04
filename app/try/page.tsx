@@ -80,6 +80,7 @@ export default function TryPage() {
 
   // Preview the order garments will actually be layered in.
   const layered = sortByLayer(garments);
+  const usesOuterwearCutouts = layered.some((g) => g.type === "jacket");
   const isTypeDisabledForGarment = (type: GarmentType, garment: Garment) =>
     !canUseType(garments, type, garment.id);
 
@@ -172,7 +173,9 @@ export default function TryPage() {
             </button>
             <p className="text-center text-[11px] font-bold leading-5 text-[#746f67]">
               {garments.length > 0
-                ? "We will layer your pieces by item type and build one complete preview."
+                ? usesOuterwearCutouts
+                  ? "Outerwear uses cutout preprocessing first, then we layer every piece into one complete preview."
+                  : "We will layer your pieces by item type and build one complete preview."
                 : "Add a few pieces to build your fit preview."}
             </p>
           </div>

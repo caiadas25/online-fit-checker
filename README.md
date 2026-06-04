@@ -12,9 +12,10 @@ before buying.
 2. **Pick a base model** — a bundled mannequin, or upload a real front-facing photo
    for the most realistic result.
 3. **Choose an image model** — Gemini or Nano Banana 2, selectable per generation.
-4. **Generate** — the items are sorted into layer order and applied one at a time,
-   each edit stacking on the previous so layering reads correctly. You get an image
-   you can regenerate or download.
+4. **Generate** — the items are sorted into layer order and composed into one
+   preview. Most outfits use one multi-image request; outfits with outerwear first
+   generate cleaned garment cutouts, then compose the final preview so jackets are
+   not lost behind other tops.
 
 ## Image generation (OpenRouter)
 
@@ -53,7 +54,7 @@ npm run dev                  # http://localhost:3000
 
 - `app/page.tsx` — client UI: garment list, base-model picker, model picker, result panel.
 - `app/api/extract` — scrapes a product image from a store URL (SSRF-guarded).
-- `app/api/tryon` — iterative composition into one outfit image, with a `model` param.
+- `app/api/tryon` — outfit composition API, with automatic cutout preprocessing for outerwear.
 - `lib/scrape.ts` — HTML → product image/title extraction.
 - `lib/imagegen.ts` — `composeOutfit()`, the OpenRouter image generation pipeline.
 - `lib/model-options.ts` — client-safe model keys/labels shared by UI and server.
@@ -63,8 +64,9 @@ npm run dev                  # http://localhost:3000
 
 - Scraping arbitrary stores is best-effort; if a site blocks it, use the image
   upload fallback.
-- Try-on fidelity varies for fine details and patterns; iterative editing can
-  drift, so regenerate if a result looks off.
+- Try-on fidelity varies for fine details and patterns. Outerwear uses a slower
+  preprocessed cutout path to improve jacket retention; regenerate if a result
+  still looks off.
 - The bundled mannequins are stylized SVG placeholders — for realistic output,
   upload a real model photo as the base.
 
