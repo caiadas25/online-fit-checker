@@ -103,10 +103,11 @@ export async function getUsageStats(period: UsagePeriod): Promise<UsageStats> {
 }
 
 function parseUsageEvent(raw: unknown): UsageEvent | null {
-  if (typeof raw !== "string") return null;
-
   try {
-    const event = JSON.parse(raw) as Partial<UsageEvent>;
+    const event = (
+      typeof raw === "string" ? JSON.parse(raw) : raw
+    ) as Partial<UsageEvent>;
+    if (!event || typeof event !== "object") return null;
     if (!event.id || !event.createdAt || !event.modelLabel || !event.generationModeLabel) {
       return null;
     }
