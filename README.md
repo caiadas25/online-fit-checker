@@ -45,7 +45,9 @@ npm run dev                  # http://localhost:3000
 - `OPENROUTER_API_KEY` is required in every environment. Local changes to
   `.env.local` require restarting `npm run dev`.
 - Set `ADMIN_PASSWORD` and a long random `ADMIN_AUTH_SECRET` to enable the admin
-  session used for `/admin`, `/try`, and the generation APIs.
+  session used for `/admin` and waitlist data. Admin sessions can also access `/try`.
+- Set `TESTER_PASSWORD` and a long random `TESTER_AUTH_SECRET` to enable tester
+  access for `/try`, `/api/extract`, and `/api/tryon` in production.
 
 ## Architecture
 
